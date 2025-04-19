@@ -6,11 +6,12 @@ import android.content.Intent
 import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.* // Keep other icons like DateRange, Settings, Mic, Add, Delete
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,13 +29,16 @@ import com.example.taskrabbit.ui.theme.AppThemeSettings
 import org.threeten.bp.LocalDate
 import org.threeten.bp.format.DateTimeFormatter
 import java.util.*
+import androidx.compose.ui.res.painterResource
+import com.example.taskrabbit.viewmodel.SettingsViewModel
+import com.example.taskrabbit.ui.theme.BackgroundChoice
+import androidx.compose.ui.draw.paint
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskListScreen(
-    onNavigateToSettings: () -> Unit, // Callback for navigating to the Settings screen
-    onNavigateToCalendar: () -> Unit, // Callback for navigating to the Calendar screen
-    // Removed onNavigateToBackgroundSelector callback as the button is removed
+    onNavigateToSettings: () -> Unit,
+    onNavigateToCalendar: () -> Unit,
     viewModel: TaskViewModel = viewModel(factory = TaskViewModel.Factory(LocalContext.current.applicationContext as Application))
 ) {
     val context = LocalContext.current
@@ -45,7 +49,9 @@ fun TaskListScreen(
     val appThemeSettings = AppThemeSettings()
     val themeSettings by appThemeSettings.collectAsState(initial = ThemeSettings())
 
-    // Speech recognition launcher
+    val settingsViewModel: SettingsViewModel = viewModel()
+    val appState by settingsViewModel.appState.collectAsState()
+
     val speechRecognitionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -57,7 +63,6 @@ fun TaskListScreen(
         isListeningForSpeech = false
     }
 
-    // Permission launcher for accessing microphone
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -70,17 +75,28 @@ fun TaskListScreen(
                 speechRecognitionLauncher.launch(intent)
                 true
             } catch (e: Exception) {
-                // It's good practice to handle potential exceptions here
-                // e.g., log the error or show a message to the user
                 false
             }
         } else {
-            // Handle the case where permission is denied, maybe show a message
             false
         }
     }
 
-    // Load tasks for the selected date whenever the date changes
+    fun getBackgroundResource(backgroundChoice: BackgroundChoice): Int? {
+        return when (backgroundChoice) {
+            BackgroundChoice.BUTTERFLY -> R.drawable.bg_butterfly
+            BackgroundChoice.COLORFUL -> R.drawable.bg_colorful
+            BackgroundChoice.CUTE -> R.drawable.bg_cute
+            BackgroundChoice.FLOWERS -> R.drawable.bg_flowers
+            BackgroundChoice.RAINBOW -> R.drawable.bg_rainbow
+            BackgroundChoice.SHOOTING_STAR -> R.drawable.bg_shooting_star
+            BackgroundChoice.SKELETON_HEAD -> R.drawable.bg_skeleton_head
+            BackgroundChoice.WHITE -> null
+        }
+    }
+
+    val backgroundResource = getBackgroundResource(appState.backgroundChoice)
+
     LaunchedEffect(currentViewDate) {
         viewModel.loadTasksForDate(currentViewDate)
     }
@@ -88,15 +104,15 @@ fun TaskListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(id = R.string.my_tasks)) },
+                title = {
+                    Text(
+                        currentViewDate.format(DateTimeFormatter.ofPattern("MMMM d, yyyy"))
+                    )
+                },
                 actions = {
-                    IconButton(onClick = onNavigateToCalendar) {
-                        Icon(Icons.Default.DateRange, contentDescription = "Calendar")
-                    }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
-                    // IconButton for Image/Background Selector has been removed.
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
@@ -110,18 +126,30 @@ fun TaskListScreen(
                 onAddTask = {
                     if (newTaskText.isNotBlank()) {
                         viewModel.addTask(newTaskText, currentViewDate)
-                        newTaskText = "" // Clear text field after adding
+                        newTaskText = ""
                     }
                 }
             )
         }
     ) { paddingValues ->
-        TaskListContent(
-            paddingValues = paddingValues,
-            tasksForDate = tasksForDate,
-            currentViewDate = currentViewDate,
-            onDeleteTask = { taskId -> viewModel.deleteTask(taskId) }
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .then(
+                    if (backgroundResource != null) {
+                        Modifier.paint(painterResource(id = backgroundResource))
+                    } else {
+                        Modifier.background(Color.White)
+                    }
+                )
+        ) {
+            TaskListContent(
+                paddingValues = paddingValues,
+                tasksForDate = tasksForDate,
+                onDeleteTask = { taskId -> viewModel.deleteTask(taskId) }
+            )
+        }
     }
 }
 
@@ -148,7 +176,7 @@ private fun TaskInputBar(
                 onValueChange = onTextChange,
                 placeholder = { Text(stringResource(R.string.add_task_hint)) },
                 modifier = Modifier.weight(1f),
-                singleLine = true // Ensures the text field doesn't expand vertically
+                singleLine = true
             )
             Spacer(modifier = Modifier.width(8.dp))
             IconButton(onClick = onMicClick) {
@@ -158,11 +186,10 @@ private fun TaskInputBar(
                     tint = if (isListeningForSpeech) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                 )
             }
-            IconButton(onClick = onAddTask, enabled = newTaskText.isNotBlank()) { // Disable add button if text is blank
+            IconButton(onClick = onAddTask, enabled = newTaskText.isNotBlank()) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Add Task",
-                    // Adjust tint based on enabled state if desired
                     tint = if (newTaskText.isNotBlank()) MaterialTheme.colorScheme.primary else Color.Gray
                 )
             }
@@ -174,44 +201,32 @@ private fun TaskInputBar(
 private fun TaskListContent(
     paddingValues: PaddingValues,
     tasksForDate: List<TaskItem>,
-    currentViewDate: LocalDate,
     onDeleteTask: (Long) -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(paddingValues) // Apply padding from Scaffold
+            .padding(paddingValues)
     ) {
-        // Display the current date being viewed
-        Text(
-            text = currentViewDate.format(DateTimeFormatter.ofPattern("MMMM d, yyyy")), // Consistent date format
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(16.dp), // Padding around the date text
-            color = MaterialTheme.colorScheme.primary // Use primary color for emphasis
-        )
-
-        // Conditional content based on whether tasks exist for the date
         if (tasksForDate.isEmpty()) {
-            // Show a message if there are no tasks
             Box(
-                modifier = Modifier.fillMaxSize(), // Take up remaining space
-                contentAlignment = Alignment.Center // Center the message
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
                 Text(stringResource(R.string.no_tasks_for_date))
             }
         } else {
-            // Display the list of tasks if any exist
             LazyColumn(
                 modifier = Modifier
-                    .fillMaxSize() // Take up remaining space
-                    .padding(horizontal = 16.dp) // Horizontal padding for list items
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
             ) {
-                items(tasksForDate, key = { task -> task.id }) { task -> // Use task id as key for better performance
+                items(tasksForDate, key = { task -> task.id }) { task ->
                     TaskItemCard(
                         task = task,
-                        onDelete = onDeleteTask // Pass the delete action
+                        onDelete = onDeleteTask
                     )
-                    Divider() // Add a divider between task items
+                    Divider()
                 }
             }
         }
@@ -226,16 +241,16 @@ fun TaskItemCard(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp), // Padding for each task item row
-        verticalAlignment = Alignment.CenterVertically, // Align items vertically in the center
-        horizontalArrangement = Arrangement.SpaceBetween // Space out text and button
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
             text = task.title,
-            modifier = Modifier.weight(1f).padding(end = 8.dp) // Allow text to take space and add padding before button
+            modifier = Modifier.weight(1f).padding(end = 8.dp)
         )
-        IconButton(onClick = { onDelete(task.id) }) { // Trigger delete action on click
-            Icon(Icons.Default.Delete, contentDescription = "Delete Task") // Use specific content description
+        IconButton(onClick = { onDelete(task.id) }) {
+            Icon(Icons.Default.Delete, contentDescription = "Delete Task")
         }
     }
 }
