@@ -106,6 +106,11 @@ fun TaskListScreen(
                         currentViewDate.format(DateTimeFormatter.ofPattern("MMMM d, yyyy"))
                     )
                 },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateToCalendar) {
+                        Icon(Icons.Filled.DateRange, contentDescription = "Calendar")
+                    }
+                },
                 actions = {
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
