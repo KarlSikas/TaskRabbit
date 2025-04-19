@@ -2,10 +2,12 @@ package com.example.taskrabbit.ui.screens
 
 import android.Manifest
 import android.app.Application
+import android.app.Activity // Import Activity
 import android.content.Intent
 import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image // Import Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue // Import collectAsState extension
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,14 +28,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.taskrabbit.R
 import com.example.taskrabbit.data.TaskItem
 import com.example.taskrabbit.viewmodel.TaskViewModel
-import com.example.taskrabbit.ui.theme.ThemeSettings
 import org.threeten.bp.LocalDate
 import org.threeten.bp.format.DateTimeFormatter
 import java.util.*
-import androidx.compose.ui.res.painterResource
-import com.example.taskrabbit.viewmodel.SettingsViewModel
-import com.example.taskrabbit.ui.theme.BackgroundChoice
-import androidx.compose.ui.draw.paint
+import com.example.taskrabbit.ui.theme.AppThemeSettings // Import AppThemeSettings
 import androidx.compose.ui.graphics.painter.Painter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,129 +39,135 @@ import androidx.compose.ui.graphics.painter.Painter
 fun TaskListScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToCalendar: () -> Unit,
-    themeSettings: ThemeSettings, // Add themeSettings parameter
     viewModel: TaskViewModel = viewModel(factory = TaskViewModel.Factory(LocalContext.current.applicationContext as Application))
 ) {
     val context = LocalContext.current
+    val currentThemeSettings by AppThemeSettings.themeSettings.collectAsState()
+    val backgroundPainter: Painter? = AppThemeSettings.getBackgroundImagePainter(currentThemeSettings, context)
+    val backgroundColor = AppThemeSettings.getBackgroundColor(currentThemeSettings, context)
+
     var newTaskText by remember { mutableStateOf("") }
     var isListeningForSpeech by remember { mutableStateOf(false) }
     var currentViewDate by remember { mutableStateOf(LocalDate.now()) }
     val tasksForDate by viewModel.tasksForSelectedDate.collectAsState()
 
+    // --- FIX 1: Restore Speech Recognition Launcher ---
     val speechRecognitionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
+        contract = ActivityResultContracts.StartActivityForResult() // Specify the contract
     ) { result ->
-        result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.let { results ->
-            if (results.isNotEmpty()) {
-                newTaskText = results[0]
+        // Specify the result handling logic
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.let { results ->
+                if (results.isNotEmpty()) {
+                    newTaskText = results[0]
+                }
             }
         }
         isListeningForSpeech = false
     }
 
+    // --- FIX 2: Restore Permission Launcher ---
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
+        contract = ActivityResultContracts.RequestPermission() // Specify the contract
     ) { isGranted ->
-        isListeningForSpeech = if (isGranted) {
+        // Specify the result handling logic
+        if (isGranted) {
             try {
                 val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+                    putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak now...") // Optional prompt
                 }
                 speechRecognitionLauncher.launch(intent)
-                true
+                isListeningForSpeech = true
             } catch (e: Exception) {
-                false
+                // Handle exception (e.g., no speech recognition support)
+                isListeningForSpeech = false
             }
         } else {
-            false
+            // Handle permission denial (e.g., show a message)
+            isListeningForSpeech = false
         }
     }
+    // --- End FIX 1 & 2 ---
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        currentViewDate.format(DateTimeFormatter.ofPattern("MMMM d, yyyy"))
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateToCalendar) {
-                        Icon(Icons.Filled.DateRange, contentDescription = "Calendar")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-            )
-        },
-        bottomBar = {
-            TaskInputBar(
-                newTaskText = newTaskText,
-                isListeningForSpeech = isListeningForSpeech,
-                onTextChange = { newTaskText = it },
-                onMicClick = { permissionLauncher.launch(Manifest.permission.RECORD_AUDIO) },
-                onAddTask = {
-                    if (newTaskText.isNotBlank()) {
-                        viewModel.addTask(newTaskText, currentViewDate)
-                        newTaskText = ""
-                    }
-                }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(if (backgroundPainter == null) backgroundColor else Color.Transparent)
+    ) {
+        if (backgroundPainter != null) {
+            Image(
+                painter = backgroundPainter,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
             )
         }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .let {
 
-                    val backgroundPainter: Painter? = when (themeSettings.backgroundChoice) {
-                        BackgroundChoice.BUTTERFLY -> painterResource(id = R.drawable.bg_butterfly)
-                        BackgroundChoice.COLORFUL -> painterResource(id = R.drawable.bg_colorful)
-                        BackgroundChoice.CUTE -> painterResource(id = R.drawable.bg_cute)
-                        BackgroundChoice.FLOWERS -> painterResource(id = R.drawable.bg_flowers)
-                        BackgroundChoice.RAINBOW -> painterResource(id = R.drawable.bg_rainbow)
-                        BackgroundChoice.SHOOTING_STAR -> painterResource(id = R.drawable.bg_shooting_star)
-                        BackgroundChoice.SKELETON_HEAD -> painterResource(id = R.drawable.bg_skeleton_head)
-                        BackgroundChoice.WHITE -> null
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(currentViewDate.format(DateTimeFormatter.ofPattern("MMMM d, yyyy"))) },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateToCalendar) {
+                            Icon(Icons.Filled.DateRange, contentDescription = stringResource(R.string.calendar))
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = onNavigateToSettings) {
+                            Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings))
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                )
+            },
+            bottomBar = {
+                TaskInputBar(
+                    newTaskText = newTaskText,
+                    isListeningForSpeech = isListeningForSpeech,
+                    onTextChange = { newTaskText = it },
+                    onMicClick = { permissionLauncher.launch(Manifest.permission.RECORD_AUDIO) },
+                    onAddTask = {
+                        if (newTaskText.isNotBlank()) {
+                            viewModel.addTask(newTaskText, currentViewDate)
+                            newTaskText = ""
+                        }
                     }
-
-                    if (backgroundPainter != null) {
-                        it.paint(backgroundPainter!!, contentScale = ContentScale.FillBounds)
-                    } else {
-                        it.background(if (themeSettings.darkModeEnabled) Color.DarkGray else Color.White)
+                )
+            },
+            containerColor = Color.Transparent
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                if (tasksForDate.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(stringResource(R.string.no_tasks_for_date))
                     }
-                }
-        ) {
-            if (tasksForDate.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(stringResource(R.string.no_tasks_for_date))
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp)
-                ) {
-                    items(tasksForDate, key = { task -> task.id }) { task ->
-                        TaskItemCard(
-                            task = task,
-                            onDelete = { taskId -> viewModel.deleteTask(taskId) }
-                        )
-                        Divider()
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        items(tasksForDate, key = { task -> task.id }) { task ->
+                            TaskItemCard(
+                                task = task,
+                                onDelete = { taskId -> viewModel.deleteTask(taskId) }
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
                     }
                 }
             }
-        }
-    }
+        } // End Scaffold
+    } // End Root Box
 }
 
 @Composable
@@ -174,7 +179,7 @@ private fun TaskInputBar(
     onAddTask: () -> Unit
 ) {
     BottomAppBar(
-        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
         tonalElevation = 4.dp
     ) {
         Row(
@@ -189,19 +194,24 @@ private fun TaskInputBar(
                 placeholder = { Text(stringResource(R.string.add_task_hint)) },
                 modifier = Modifier.weight(1f),
                 singleLine = true
+                // --- FIX 3: Remove problematic colors parameter ---
+                // colors = TextFieldDefaults.outlinedTextFieldColors(
+                //     // Customize based on theme/contrast needs
+                // )
+                // --- End FIX 3 ---
             )
             Spacer(modifier = Modifier.width(8.dp))
             IconButton(onClick = onMicClick) {
                 Icon(
                     imageVector = Icons.Default.Mic,
-                    contentDescription = "Voice Input",
+                    contentDescription = stringResource(R.string.accessibility_voice_input),
                     tint = if (isListeningForSpeech) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                 )
             }
             IconButton(onClick = onAddTask, enabled = newTaskText.isNotBlank()) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Add Task",
+                    contentDescription = stringResource(R.string.add_task),
                     tint = if (newTaskText.isNotBlank()) MaterialTheme.colorScheme.primary else Color.Gray
                 )
             }
@@ -218,7 +228,10 @@ fun TaskItemCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
+        )
     ) {
         Row(
             modifier = Modifier
@@ -228,12 +241,13 @@ fun TaskItemCard(
         ) {
             Text(
                 text = task.title,
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             IconButton(onClick = { onDelete(task.id) }) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete Task",
+                    contentDescription = stringResource(R.string.delete_task),
                     tint = MaterialTheme.colorScheme.error
                 )
             }

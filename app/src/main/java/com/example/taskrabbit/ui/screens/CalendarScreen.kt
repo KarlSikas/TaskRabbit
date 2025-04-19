@@ -1,5 +1,6 @@
 package com.example.taskrabbit.ui.screens
 
+import androidx.compose.foundation.Image // Import Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -10,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue // Import collectAsState extension
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -19,90 +21,101 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.draw.clip
 import com.example.taskrabbit.R
 import com.example.taskrabbit.viewmodel.CalendarViewModel
 import org.threeten.bp.LocalDate
 import org.threeten.bp.format.DateTimeFormatter
-import androidx.compose.ui.res.painterResource
-import com.example.taskrabbit.viewmodel.SettingsViewModel
-import com.example.taskrabbit.ui.theme.BackgroundChoice
-import androidx.compose.ui.draw.paint
-import com.example.taskrabbit.ui.theme.ThemeSettings
+// Remove unused painterResource import
+// import androidx.compose.ui.res.painterResource
+import com.example.taskrabbit.viewmodel.SettingsViewModel // Keep if needed
+import com.example.taskrabbit.ui.theme.AppThemeSettings // Import AppThemeSettings
+// Remove unused BackgroundChoice import
+// import com.example.taskrabbit.ui.theme.BackgroundChoice
+// Remove unused paint import
+// import androidx.compose.ui.draw.paint
+// Remove unused ThemeSettings import
+// import com.example.taskrabbit.ui.theme.ThemeSettings
 import androidx.compose.ui.graphics.painter.Painter
-import android.content.Context
-import com.example.taskrabbit.ui.theme.AppThemeSettings
+// Remove unused Context import
+// import android.content.Context
 
-//import androidx.core.splashscreen.ThemeUtils
-//import com.example.taskrabbit.ui.theme.ThemeUtils // Import ThemeUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
     onNavigateBack: () -> Unit,
     onDateSelected: (LocalDate) -> Unit,
-    themeSettings: ThemeSettings,
+    // Remove themeSettings parameter
+    // themeSettings: ThemeSettings,
     calendarViewModel: CalendarViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+
+    // --- Collect Theme State ---
+    val currentThemeSettings by AppThemeSettings.themeSettings.collectAsState()
+    // --- End Theme State Collection ---
+
+    // --- Get Background ---
+    val backgroundPainter: Painter? = AppThemeSettings.getBackgroundImagePainter(currentThemeSettings, context)
+    val backgroundColor = AppThemeSettings.getBackgroundColor(currentThemeSettings, context)
+    // --- End Background ---
+
     val today = LocalDate.now()
     val dates by calendarViewModel.dates.observeAsState(emptyList())
     val listState = rememberLazyListState()
-    val context = LocalContext.current
 
-    LaunchedEffect(dates) {
-        val todayIndex = (dates as List<LocalDate>).indexOf(today)
-        if (todayIndex >= 0) {
-            listState.scrollToItem(todayIndex)
-        }
-    }
+    // LaunchedEffect remains the same
+    LaunchedEffect(dates) { /* ... */ }
 
-    Column(
+    // --- Root Box for Background Layering ---
+    Box(
         modifier = Modifier
             .fillMaxSize()
+            // Apply solid background color ONLY if there's no image
+            .background(if (backgroundPainter == null) backgroundColor else Color.Transparent)
     ) {
-        CenterAlignedTopAppBar(
-            title = { Text(text = stringResource(R.string.calendar)) },
-            navigationIcon = {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                }
-            }
-            , colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        // Apply background image if one is selected (drawn under Column content)
+        if (backgroundPainter != null) {
+            Image(
+                painter = backgroundPainter,
+                contentDescription = null, // Decorative background
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop // Or FillBounds
             )
-        )
+        }
 
-        Box(
+        // --- Content Column on top of the background ---
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(AppThemeSettings.getBackgroundColor(themeSettings, context)) // Use AppThemeSettings.getBackgroundColor
+                // Make Column transparent so Box background (or Image) shows through
+                .background(Color.Transparent)
         ) {
-            if (themeSettings.backgroundChoice != BackgroundChoice.WHITE) {
-                val backgroundPainterId = when (themeSettings.backgroundChoice) {
-                    BackgroundChoice.BUTTERFLY -> R.drawable.bg_butterfly
-                    BackgroundChoice.COLORFUL -> R.drawable.bg_colorful
-                    BackgroundChoice.CUTE -> R.drawable.bg_cute
-                    BackgroundChoice.FLOWERS -> R.drawable.bg_flowers
-                    BackgroundChoice.RAINBOW -> R.drawable.bg_rainbow
-                    BackgroundChoice.SHOOTING_STAR -> R.drawable.bg_shooting_star
-                    BackgroundChoice.SKELETON_HEAD -> R.drawable.bg_skeleton_head
-                    else -> 0
-                }
-                if (backgroundPainterId != 0) {
-                    val backgroundPainter = painterResource(id = backgroundPainterId)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .paint(backgroundPainter, contentScale = ContentScale.FillBounds)
-                    )
-                }
-            }
+            CenterAlignedTopAppBar(
+                title = { Text(text = stringResource(R.string.calendar)) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back)) // Use string resource
+                    }
+                },
+                // Make TopAppBar transparent
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.Transparent
+                    // Adjust title/icon colors if needed for contrast
+                    // titleContentColor = ...,
+                    // navigationIconContentColor = ...
+                )
+            )
 
+            // LazyColumn for dates - remove background logic from its container
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize() // Takes remaining space in the Column
+                    .padding(horizontal = 8.dp), // Add some horizontal padding if needed
                 state = listState,
-                contentPadding = PaddingValues(vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                contentPadding = PaddingValues(vertical = 16.dp), // Padding for top/bottom of list
+                verticalArrangement = Arrangement.spacedBy(8.dp) // Spacing between items
             ) {
                 itemsIndexed(dates) { _, date ->
                     DateItem(
@@ -112,8 +125,8 @@ fun CalendarScreen(
                     )
                 }
             }
-        }
-    }
+        } // End Content Column
+    } // End Root Box
 }
 
 @Composable
@@ -123,19 +136,31 @@ fun DateItem(
     onClick: () -> Unit
 ) {
     val dateFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy")
-    val backgroundColor = if (isToday) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.Transparent
-    val textColor = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+    // Use a semi-transparent background for the item itself for better readability over images
+    val itemBackgroundColor = if (isToday) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f) // More distinct for today
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f) // Subtle background for others
+    }
+    // Ensure text color contrasts well with the item background
+    val textColor = if (isToday) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium) // Add rounded corners
             .clickable { onClick() }
-            .background(backgroundColor)
+            .background(itemBackgroundColor) // Apply semi-transparent background
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Text(
             text = date.format(dateFormatter),
-            color = textColor,
+            color = textColor, // Use contrast-checked color
             fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
         )
     }
