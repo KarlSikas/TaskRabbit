@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.painter.Painter
 fun TaskListScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToCalendar: () -> Unit,
+    themeSettings: ThemeSettings, // Add themeSettings parameter
     viewModel: TaskViewModel = viewModel(factory = TaskViewModel.Factory(LocalContext.current.applicationContext as Application))
 ) {
     val context = LocalContext.current
@@ -47,9 +48,6 @@ fun TaskListScreen(
     var isListeningForSpeech by remember { mutableStateOf(false) }
     var currentViewDate by remember { mutableStateOf(LocalDate.now()) }
     val tasksForDate by viewModel.tasksForSelectedDate.collectAsState()
-
-    val settingsViewModel: SettingsViewModel = viewModel()
-    val themeSettings by settingsViewModel.themeSettings.collectAsState()
 
     val speechRecognitionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()

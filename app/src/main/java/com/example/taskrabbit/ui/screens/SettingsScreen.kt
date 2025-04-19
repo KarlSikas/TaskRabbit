@@ -36,16 +36,17 @@ import com.example.taskrabbit.TaskRabbitApplication
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.ViewModelProvider
+import com.example.taskrabbit.ui.theme.ThemeSettings
 
 @SuppressLint("SimpleDateFormat")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit = {},
-    settingsViewModel: SettingsViewModel = viewModel()
+    themeSettings: ThemeSettings, // Receive themeSettings
+    settingsViewModel: SettingsViewModel // Receive settingsViewModel
 ) {
     val scrollState = rememberScrollState()
-    val themeSettings by settingsViewModel.themeSettings.collectAsState()
     val notificationsEnabled = remember { mutableStateOf(false) }
     val language = remember { mutableStateOf("English") }
 
@@ -466,5 +467,5 @@ fun BackgroundImageOption(
 @Preview(showBackground = true)
 @Composable
 fun SettingsScreenPreview() {
-    SettingsScreen(onNavigateBack = {})
+    SettingsScreen(onNavigateBack = {}, themeSettings = ThemeSettings(), settingsViewModel = viewModel())
 }

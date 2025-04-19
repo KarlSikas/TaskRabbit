@@ -1,6 +1,7 @@
 package com.example.taskrabbit
 
 import TaskRabbitTheme
+import android.app.Application
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,12 +17,8 @@ import androidx.navigation.compose.composable
 import com.example.taskrabbit.ui.screens.CalendarScreen
 import com.example.taskrabbit.ui.screens.SettingsScreen
 import com.example.taskrabbit.ui.screens.TaskListScreen
-import androidx.lifecycle.viewmodel.compose.viewModel // Import viewModel
-import com.example.taskrabbit.viewmodel.SettingsViewModel // Import SettingsViewModel
-import com.example.taskrabbit.TaskRabbitApplication
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.taskrabbit.viewmodel.SettingsViewModel
 import androidx.compose.ui.platform.LocalContext
 
 sealed class Screen(val route: String) {
@@ -35,7 +32,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            TaskRabbitTheme {
+            val settingsViewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory(LocalContext.current.applicationContext as Application))
+            val themeSettings by settingsViewModel.themeSettings.collectAsState()
+
+            TaskRabbitTheme(darkTheme = themeSettings.darkModeEnabled) {
                 val navController = rememberNavController()
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -47,12 +47,17 @@ class MainActivity : ComponentActivity() {
                         composable(Screen.TaskList.route) {
                             TaskListScreen(
                                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
-                                onNavigateToCalendar = { navController.navigate(Screen.Calendar.route) }
+                                onNavigateToCalendar = { navController.navigate(Screen.Calendar.route) },
+                                themeSettings = themeSettings
                             )
                         }
 
                         composable(Screen.Settings.route) {
-                            SettingsScreen(onNavigateBack = { navController.popBackStack() })
+                            SettingsScreen(
+                                onNavigateBack = { navController.popBackStack() },
+                                themeSettings = themeSettings,
+                                settingsViewModel = settingsViewModel
+                            )
                         }
 
                         composable(Screen.Calendar.route) {
@@ -61,7 +66,8 @@ class MainActivity : ComponentActivity() {
                                 onDateSelected = { selectedDate ->
                                     println("Selected Date: $selectedDate")
                                     navController.popBackStack()
-                                }
+                                },
+                                themeSettings = themeSettings
                             )
                         }
                     }
