@@ -30,6 +30,10 @@ import androidx.compose.ui.draw.paint
 import com.example.taskrabbit.ui.theme.ThemeSettings
 import androidx.compose.ui.graphics.painter.Painter
 import android.content.Context
+import com.example.taskrabbit.ui.theme.AppThemeSettings
+
+//import androidx.core.splashscreen.ThemeUtils
+//import com.example.taskrabbit.ui.theme.ThemeUtils // Import ThemeUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,7 +58,6 @@ fun CalendarScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(getBackgroundColor(themeSettings, context))
     ) {
         CenterAlignedTopAppBar(
             title = { Text(text = stringResource(R.string.calendar)) },
@@ -63,20 +66,51 @@ fun CalendarScreen(
                     Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                 }
             }
+            , colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            )
         )
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            state = listState,
-            contentPadding = PaddingValues(vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(AppThemeSettings.getBackgroundColor(themeSettings, context)) // Use AppThemeSettings.getBackgroundColor
         ) {
-            itemsIndexed(dates) { _, date ->
-                DateItem(
-                    date = date,
-                    isToday = date == today,
-                    onClick = { onDateSelected(date) }
-                )
+            if (themeSettings.backgroundChoice != BackgroundChoice.WHITE) {
+                val backgroundPainterId = when (themeSettings.backgroundChoice) {
+                    BackgroundChoice.BUTTERFLY -> R.drawable.bg_butterfly
+                    BackgroundChoice.COLORFUL -> R.drawable.bg_colorful
+                    BackgroundChoice.CUTE -> R.drawable.bg_cute
+                    BackgroundChoice.FLOWERS -> R.drawable.bg_flowers
+                    BackgroundChoice.RAINBOW -> R.drawable.bg_rainbow
+                    BackgroundChoice.SHOOTING_STAR -> R.drawable.bg_shooting_star
+                    BackgroundChoice.SKELETON_HEAD -> R.drawable.bg_skeleton_head
+                    else -> 0
+                }
+                if (backgroundPainterId != 0) {
+                    val backgroundPainter = painterResource(id = backgroundPainterId)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .paint(backgroundPainter, contentScale = ContentScale.FillBounds)
+                    )
+                }
+            }
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                state = listState,
+                contentPadding = PaddingValues(vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                itemsIndexed(dates) { _, date ->
+                    DateItem(
+                        date = date,
+                        isToday = date == today,
+                        onClick = { onDateSelected(date) }
+                    )
+                }
             }
         }
     }
@@ -104,28 +138,5 @@ fun DateItem(
             color = textColor,
             fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
         )
-    }
-}
-
-fun getBackgroundColor(themeSettings: ThemeSettings, context: Context): Color {
-    if (themeSettings.backgroundChoice == BackgroundChoice.WHITE) {
-        return if (themeSettings.darkModeEnabled) Color.DarkGray else Color.White
-    }
-
-    val backgroundPainterId = when (themeSettings.backgroundChoice) {
-        BackgroundChoice.BUTTERFLY -> R.drawable.bg_butterfly
-        BackgroundChoice.COLORFUL -> R.drawable.bg_colorful
-        BackgroundChoice.CUTE -> R.drawable.bg_cute
-        BackgroundChoice.FLOWERS -> R.drawable.bg_flowers
-        BackgroundChoice.RAINBOW -> R.drawable.bg_rainbow
-        BackgroundChoice.SHOOTING_STAR -> R.drawable.bg_shooting_star
-        BackgroundChoice.SKELETON_HEAD -> R.drawable.bg_skeleton_head
-        else -> 0
-    }
-
-    return if (backgroundPainterId != 0) {
-        Color.Transparent // Use transparent color and paint the background in the Column
-    } else {
-        if (themeSettings.darkModeEnabled) Color.DarkGray else Color.White
     }
 }

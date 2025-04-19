@@ -22,12 +22,15 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.lifecycle.ViewModelProvider
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import com.example.taskrabbit.ui.theme.AppThemeSettings // Import AppThemeSettings
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
+    // ViewModel's internal state (might be partly redundant if AppThemeSettings is the source of truth for UI)
     private val _appState = MutableStateFlow(AppState())
     val appState: StateFlow<AppState> = _appState.asStateFlow()
-    private val _themeSettings = MutableStateFlow(ThemeSettings())
+    private val _themeSettings = MutableStateFlow(ThemeSettings()) // Internal copy
     val themeSettings: StateFlow<ThemeSettings> = _themeSettings.asStateFlow()
+
     private val dataStore = TaskRabbitApplication.getDataStore()
 
     init {
@@ -36,7 +39,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     private fun loadSettings() {
         viewModelScope.launch {
-            val storedBackgroundChoice = dataStore.data
+            // Load from DataStore (using .first() is okay for initial load)
+            val storedBackgroundChoiceName = dataStore.data
                 .map { preferences ->
                     preferences[BACKGROUND_CHOICE_KEY] ?: BackgroundChoice.WHITE.name
                 }.first()
@@ -45,48 +49,82 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                     preferences[DARK_MODE_KEY] ?: false
                 }.first()
 
-            _themeSettings.value = ThemeSettings(
-                backgroundChoice = BackgroundChoice.valueOf(storedBackgroundChoice),
-                darkModeEnabled = storedDarkMode
-            )
-            _appState.value = _appState.value.copy(
-                backgroundChoice = BackgroundChoice.valueOf(storedBackgroundChoice),
-                darkModeEnabled = storedDarkMode
-            )
-        }
-    }
-
-    fun updateThemeSettings(themeSettings: ThemeSettings) {
-        viewModelScope.launch {
-            dataStore.edit { preferences ->
-                preferences[BACKGROUND_CHOICE_KEY] = themeSettings.backgroundChoice.name
-                preferences[DARK_MODE_KEY] = themeSettings.darkModeEnabled
+            // Safely convert name to enum, defaulting to WHITE if invalid
+            val backgroundChoice = try {
+                BackgroundChoice.valueOf(storedBackgroundChoiceName)
+            } catch (e: IllegalArgumentException) {
+                Log.w("SettingsViewModel", "Invalid background choice '$storedBackgroundChoiceName' found in DataStore. Defaulting to WHITE.")
+                BackgroundChoice.WHITE
             }
-            _themeSettings.value = themeSettings
-            _appState.value = _appState.value.copy(
-                backgroundChoice = themeSettings.backgroundChoice,
-                darkModeEnabled = themeSettings.darkModeEnabled
+
+            val loadedSettings = ThemeSettings(
+                backgroundChoice = backgroundChoice,
+                darkModeEnabled = storedDarkMode
             )
-            Log.d("SettingsViewModel", "Theme settings updated: $themeSettings")
+
+            // Update ViewModel's internal state
+            _themeSettings.value = loadedSettings
+            _appState.update { it.copy(
+                backgroundChoice = loadedSettings.backgroundChoice,
+                darkModeEnabled = loadedSettings.darkModeEnabled
+            )}
+
+            // --- Add this line ---
+            // Update the global AppThemeSettings state so UI components collecting it get the initial value
+            AppThemeSettings.updateThemeSettings(loadedSettings)
+            // --- End Add ---
+
+            Log.d("SettingsViewModel", "Initial settings loaded: $loadedSettings")
         }
     }
 
+    fun updateThemeSettings(newThemeSettings: ThemeSettings) {
+        viewModelScope.launch {
+            // 1. Save to DataStore
+            dataStore.edit { preferences ->
+                preferences[BACKGROUND_CHOICE_KEY] = newThemeSettings.backgroundChoice.name
+                preferences[DARK_MODE_KEY] = newThemeSettings.darkModeEnabled
+            }
+
+            // 2. Update ViewModel's internal state (optional if AppThemeSettings is the single source of truth)
+            _themeSettings.value = newThemeSettings
+            _appState.update { it.copy(
+                backgroundChoice = newThemeSettings.backgroundChoice,
+                darkModeEnabled = newThemeSettings.darkModeEnabled
+            )}
+
+            // --- Add this line ---
+            // 3. Update the global AppThemeSettings state flow
+            // This is what SettingsScreen is collecting, so this triggers the immediate UI update.
+            AppThemeSettings.updateThemeSettings(newThemeSettings)
+            // --- End Add ---
+
+            Log.d("SettingsViewModel", "Theme settings updated and saved: $newThemeSettings")
+        }
+    }
+
+    // Other functions remain the same
     fun setNotificationsEnabled(enabled: Boolean) {
-        _appState.value = _appState.value.copy(notificationsEnabled = enabled)
+        _appState.update { it.copy(notificationsEnabled = enabled) }
     }
 
     fun setLanguage(language: String) {
-        _appState.value = _appState.value.copy(language = language)
+        _appState.update { it.copy(language = language) }
     }
 
     companion object {
         private val BACKGROUND_CHOICE_KEY = stringPreferencesKey("background_choice")
         private val DARK_MODE_KEY = booleanPreferencesKey("dark_mode")
 
+        // Factory remains the same
         fun Factory(application: Application): ViewModelProvider.Factory {
             return object : ViewModelProvider.Factory {
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return SettingsViewModel(application) as T
+                    if (modelClass.isAssignableFrom(SettingsViewModel::class.java)) {
+                        @Suppress("UNCHECKED_CAST")
+                        return SettingsViewModel(application) as T
+                    }
+                    throw IllegalArgumentException("Unknown ViewModel class")
                 }
             }
         }

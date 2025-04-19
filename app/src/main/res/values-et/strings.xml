@@ -18,6 +18,7 @@
     <string name="english">Inglise</string>
     <string name="estonian">Eesti</string>
     <string name="dark_mode">Tume režiim</string>
+    <string name="selected">Valitud</string> <!-- Added -->
 
     <!-- Background Selector Screen -->
     <string name="select_background">Vali Taust</string>

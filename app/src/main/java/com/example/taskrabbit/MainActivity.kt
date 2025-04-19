@@ -36,39 +36,47 @@ class MainActivity : ComponentActivity() {
             val themeSettings by settingsViewModel.themeSettings.collectAsState()
 
             TaskRabbitTheme(darkTheme = themeSettings.darkModeEnabled) {
-                val navController = rememberNavController()
-
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    NavHost(
-                        navController = navController,
-                        startDestination = Screen.TaskList.route,
-                        modifier = Modifier.padding(innerPadding)
+                // Wrap the content in MaterialTheme and Surface
+                MaterialTheme {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background // Apply background color from theme
                     ) {
-                        composable(Screen.TaskList.route) {
-                            TaskListScreen(
-                                onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
-                                onNavigateToCalendar = { navController.navigate(Screen.Calendar.route) },
-                                themeSettings = themeSettings
-                            )
-                        }
+                        val navController = rememberNavController()
 
-                        composable(Screen.Settings.route) {
-                            SettingsScreen(
-                                onNavigateBack = { navController.popBackStack() },
-                                themeSettings = themeSettings,
-                                settingsViewModel = settingsViewModel
-                            )
-                        }
+                        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                            NavHost(
+                                navController = navController,
+                                startDestination = Screen.TaskList.route,
+                                modifier = Modifier.padding(innerPadding)
+                            ) {
+                                composable(Screen.TaskList.route) {
+                                    TaskListScreen(
+                                        onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                                        onNavigateToCalendar = { navController.navigate(Screen.Calendar.route) },
+                                        themeSettings = themeSettings
+                                    )
+                                }
 
-                        composable(Screen.Calendar.route) {
-                            CalendarScreen(
-                                onNavigateBack = { navController.popBackStack() },
-                                onDateSelected = { selectedDate ->
-                                    println("Selected Date: $selectedDate")
-                                    navController.popBackStack()
-                                },
-                                themeSettings = themeSettings
-                            )
+                                composable(Screen.Settings.route) {
+                                    SettingsScreen(
+                                        onNavigateBack = { navController.popBackStack() },
+                                        themeSettings = themeSettings,
+                                        settingsViewModel = settingsViewModel
+                                    )
+                                }
+
+                                composable(Screen.Calendar.route) {
+                                    CalendarScreen(
+                                        onNavigateBack = { navController.popBackStack() },
+                                        onDateSelected = { selectedDate ->
+                                            println("Selected Date: $selectedDate")
+                                            navController.popBackStack()
+                                        },
+                                        themeSettings = themeSettings
+                                    )
+                                }
+                            }
                         }
                     }
                 }

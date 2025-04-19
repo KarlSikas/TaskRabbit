@@ -16,8 +16,9 @@
     <string name="notifications">Notifications</string>
     <string name="language">Language</string>
     <string name="english">English</string>
-    <string name="estonian">Eesti</string>
+    <string name="estonian">Eesti</string> <!-- Assuming this should be Eesti here, matching the other file? Or keep English? Let's keep English for consistency in this file -->
     <string name="dark_mode">Dark Mode</string>
+    <string name="selected">Selected</string> <!-- Added -->
 
     <!-- Background Selector Screen -->
     <string name="select_background">Select Background</string>

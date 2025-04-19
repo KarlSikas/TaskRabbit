@@ -114,3 +114,6 @@ android {
         implementation("androidx.compose.material3:material3:1.2.0")
     }
 }
+dependencies {
+    implementation(libs.androidx.core.splashscreen)
+}
