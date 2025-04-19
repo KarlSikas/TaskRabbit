@@ -1,0 +1,119 @@
+<resources>
+    <string name="app_name">ÜlesandeJänes</string>
+    <string name="app_description">Organiseeri oma ülesandeid stiilselt</string>
+    <string name="select_calendar_background">Vali Kalendri Taust</string>
+    <!-- Settings Screen -->
+    <string name="settings">Seaded</string>
+    <string name="background_images">Taustapildid</string>
+    <string name="default_option">Vaikimisi</string>
+    <string name="butterfly">Liblikas</string>
+    <string name="colorful">Värviline</string>
+    <string name="cute">Armas</string>
+    <string name="flowers">Lilled</string>
+    <string name="rainbow">Vikerkaar</string>
+    <string name="stars">Tähed</string>
+    <string name="skull">Kolju</string>
+    <string name="notifications">Teavitused</string>
+    <string name="language">Keel</string>
+    <string name="english">Inglise</string>
+    <string name="estonian">Eesti</string>
+    <string name="dark_mode">Tume režiim</string>
+
+    <!-- Background Selector Screen -->
+    <string name="select_background">Vali Taust</string>
+    <string name="add_from_gallery">Lisa galeriist</string>
+    <string name="backgrounds_all">Kõik</string>
+    <string name="backgrounds_free">Tasuta</string>
+    <string name="backgrounds_premium">Premium</string>
+    <string name="backgrounds_my_photos">Minu Fotod</string>
+    <string name="background_premium_badge">Premium</string>
+
+    <!-- Navigation -->
+    <string name="back">Tagasi</string>
+    <string name="next">Edasi</string>
+    <string name="cancel">Tühista</string>
+    <string name="save">Salvesta</string>
+    <string name="delete">Kustuta</string>
+    <string name="confirm">Kinnita</string>
+
+    <!-- Task List Screen -->
+    <string name="my_tasks">Minu Ülesanded</string>
+    <string name="no_tasks">Siin kuvatakse sinu ülesanded</string>
+    <string name="add_task_hint">Alusta tippimist ülesande lisamiseks...</string>
+    <string name="add_task">Lisa Ülesanne</string>
+    <string name="edit_task">Muuda Ülesannet</string>
+    <string name="delete_task">Kustuta Ülesanne</string>
+    <string name="task_added">Ülesanne lisatud</string>
+    <string name="task_deleted">Ülesanne kustutatud</string>
+    <string name="speak_to_add">Räägi ülesande lisamiseks</string>
+    <string name="set_priority">Märgi prioriteetseks</string>
+    <string name="remove_priority">Eemalda prioriteetsus</string>
+    <string name="mark_completed">Märgi tehtuks</string>
+    <string name="mark_incomplete">Märgi pooleliolevaks</string>
+    <string name="add_task_for_date">Lisa ülesanne kuupäevale %1$s...</string>
+    <string name="tasks_for_date">Ülesanded kuupäevale %1$s</string>
+    <string name="no_tasks_for_date">Sellel kuupäeval ülesandeid pole</string>
+
+    <!-- Task Details -->
+    <string name="task_details">Ülesande Üksikasjad</string>
+    <string name="task_title">Ülesande Pealkiri</string>
+    <string name="task_description">Kirjeldus</string>
+    <string name="task_date">Kuupäev</string>
+    <string name="task_time">Aeg</string>
+    <string name="priority">Prioriteet</string>
+    <string name="reminder">Meeldetuletus</string>
+    <string name="completed">Tehtud</string>
+
+    <!-- Calendar Screen -->
+    <string name="calendar">Kalender</string>
+    <string name="today">Täna</string>
+    <string name="upcoming_tasks">Tulevased Ülesanded</string>
+    <string name="no_upcoming_tasks">Tulevasi ülesandeid pole</string>
+    <string name="past_due">Tähtaeg möödas</string>
+    <string name="week_view">Nädalavaade</string>
+    <string name="month_view">Kuuvaade</string>
+    <string name="add_to_calendar">Lisa Kalendrisse</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_name">Ülesande Meeldetuletused</string>
+    <string name="notification_channel_description">Meeldetuletused sinu tulevatele ülesannetele</string>
+    <string name="task_reminder">Ülesande Meeldetuletus</string>
+    <string name="task_due_soon">Ülesande tähtaeg läheneb</string>
+    <string name="reminder_set">Meeldetuletus seatud</string>
+    <string name="reminder_removed">Meeldetuletus eemaldatud</string>
+
+    <!-- Permissions -->
+    <string name="mic_permission_rationale">Mikrofoni luba on vajalik häälega ülesannete lisamiseks</string>
+    <string name="calendar_permission_rationale">Kalendri luba on vajalik ülesannete sünkroonimiseks kalendriga</string>
+    <string name="permission_denied">Luba puudub</string>
+    <string name="permission_required">Luba on vajalik</string>
+    <string name="go_to_settings">Mine Seadetesse</string>
+
+    <!-- Error Messages -->
+    <string name="error_generic">Midagi läks valesti. Palun proovi uuesti.</string>
+    <string name="error_no_internet">Internetiühendus puudub</string>
+    <string name="error_task_not_found">Ülesannet ei leitud</string>
+    <string name="error_cannot_save">Ülesannet ei saa salvestada</string>
+    <string name="error_cannot_delete">Ülesannet ei saa kustutada</string>
+    <string name="error_voice_recognition">Hääletuvastus ebaõnnestus</string>
+
+    <!-- Empty States -->
+    <string name="empty_state_tasks">Ülesanded puuduvad.\nLisa ülesanne vajutades + nuppu!</string>
+    <string name="empty_state_search">Ühtegi sobivat ülesannet ei leitud</string>
+    <string name="empty_state_calendar">Ühtegi ülesannet ei ole planeeritud</string>
+
+    <!-- Confirmations -->
+    <string name="confirm_delete_task">Kas oled kindel, et soovid selle ülesande kustutada?</string>
+    <string name="confirm_mark_completed">Märkida see ülesanne tehtuks?</string>
+    <string name="confirm_clear_all">Kas oled kindel, et soovid kõik ülesanded kustutada?</string>
+
+    <!-- Accessibility -->
+    <string name="accessibility_add_task">Ülesande lisamise nupp</string>
+    <string name="accessibility_delete_task">Ülesande kustutamise nupp</string>
+    <string name="accessibility_edit_task">Ülesande muutmise nupp</string>
+    <string name="accessibility_calendar">Kalendri nupp</string>
+    <string name="accessibility_settings">Seadete nupp</string>
+    <string name="accessibility_voice_input">Häälesisestuse nupp</string>
+    <string name="accessibility_priority_star">Prioriteedi täht</string>
+    <string name="accessibility_completed_checkbox">Tehtud märkeruut</string>
+</resources>
