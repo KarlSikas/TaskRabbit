@@ -1,5 +1,6 @@
 package com.example.taskrabbit
 
+import TaskRabbitTheme
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,9 +16,13 @@ import androidx.navigation.compose.composable
 import com.example.taskrabbit.ui.screens.CalendarScreen
 import com.example.taskrabbit.ui.screens.SettingsScreen
 import com.example.taskrabbit.ui.screens.TaskListScreen
-import com.example.taskrabbit.ui.theme.TaskRabbitTheme
 import androidx.lifecycle.viewmodel.compose.viewModel // Import viewModel
 import com.example.taskrabbit.viewmodel.SettingsViewModel // Import SettingsViewModel
+import com.example.taskrabbit.TaskRabbitApplication
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.lifecycle.ViewModelProvider
+import androidx.compose.ui.platform.LocalContext
 
 sealed class Screen(val route: String) {
     object TaskList : Screen("task_list")
@@ -30,10 +35,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            // Get the SettingsViewModel
-            val settingsViewModel: SettingsViewModel = viewModel()
-            val themeSettings by settingsViewModel.themeSettings.collectAsState()
-
             TaskRabbitTheme {
                 val navController = rememberNavController()
 

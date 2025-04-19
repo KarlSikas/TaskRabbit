@@ -25,7 +25,6 @@ import com.example.taskrabbit.R
 import com.example.taskrabbit.data.TaskItem
 import com.example.taskrabbit.viewmodel.TaskViewModel
 import com.example.taskrabbit.ui.theme.ThemeSettings
-import com.example.taskrabbit.ui.theme.AppThemeSettings
 import org.threeten.bp.LocalDate
 import org.threeten.bp.format.DateTimeFormatter
 import java.util.*
@@ -46,11 +45,9 @@ fun TaskListScreen(
     var isListeningForSpeech by remember { mutableStateOf(false) }
     var currentViewDate by remember { mutableStateOf(LocalDate.now()) }
     val tasksForDate by viewModel.tasksForSelectedDate.collectAsState()
-    val appThemeSettings = AppThemeSettings()
-    val themeSettings by appThemeSettings.collectAsState(initial = ThemeSettings())
 
     val settingsViewModel: SettingsViewModel = viewModel()
-    val appState by settingsViewModel.appState.collectAsState()
+    val themeSettings by settingsViewModel.themeSettings.collectAsState()
 
     val speechRecognitionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -95,7 +92,7 @@ fun TaskListScreen(
         }
     }
 
-    val backgroundResource = getBackgroundResource(appState.backgroundChoice)
+    val backgroundResource = getBackgroundResource(themeSettings.backgroundChoice)
 
     LaunchedEffect(currentViewDate) {
         viewModel.loadTasksForDate(currentViewDate)
@@ -140,7 +137,7 @@ fun TaskListScreen(
                     if (backgroundResource != null) {
                         Modifier.paint(painterResource(id = backgroundResource))
                     } else {
-                        Modifier.background(Color.White)
+                        Modifier.background(if (themeSettings.darkModeEnabled) Color.DarkGray else Color.White)
                     }
                 )
         ) {
@@ -238,19 +235,29 @@ fun TaskItemCard(
     task: TaskItem,
     onDelete: (Long) -> Unit
 ) {
-    Row(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+            .padding(vertical = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Text(
-            text = task.title,
-            modifier = Modifier.weight(1f).padding(end = 8.dp)
-        )
-        IconButton(onClick = { onDelete(task.id) }) {
-            Icon(Icons.Default.Delete, contentDescription = "Delete Task")
+        Row(
+            modifier = Modifier
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = task.title, // Corrected: use task.title instead of task.name
+                style = MaterialTheme.typography.bodyLarge
+            )
+            IconButton(onClick = { onDelete(task.id) }) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete Task",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
         }
     }
 }

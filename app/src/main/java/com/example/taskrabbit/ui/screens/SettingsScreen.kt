@@ -21,21 +21,20 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.taskrabbit.BuildConfig
 import com.example.taskrabbit.R
 import com.example.taskrabbit.ui.theme.BackgroundChoice
 import com.example.taskrabbit.viewmodel.SettingsViewModel
-import java.text.SimpleDateFormat
-import java.util.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import com.example.taskrabbit.data.BackgroundImage // Import BackgroundImage
-import com.example.taskrabbit.ui.components.BackgroundItem // Import BackgroundItem
+import androidx.compose.ui.tooling.preview.Preview
+import com.example.taskrabbit.TaskRabbitApplication
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.lifecycle.ViewModelProvider
 
 @SuppressLint("SimpleDateFormat")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,25 +44,11 @@ fun SettingsScreen(
     settingsViewModel: SettingsViewModel = viewModel()
 ) {
     val scrollState = rememberScrollState()
-    val appState by settingsViewModel.appState.collectAsState()
-
-    // List of custom background images (replace with your actual data)
-    val customBackgrounds = remember {
-        mutableStateListOf(
-            BackgroundImage(
-                id = 1,
-                name = "Custom 1",
-                uri = "https://example.com/custom1.jpg", // Replace with your image URI
-                isAsset = false
-            ),
-            BackgroundImage(
-                id = 2,
-                name = "Custom 2",
-                uri = "https://example.com/custom2.jpg", // Replace with your image URI
-                isAsset = false
-            )
-        )
-    }
+    val themeSettings by settingsViewModel.themeSettings.collectAsState()
+    val selectedBackgroundChoice = themeSettings.backgroundChoice
+    val notificationsEnabled = remember { mutableStateOf(false) }
+    val language = remember { mutableStateOf("English") }
+    val darkModeEnabled = remember { mutableStateOf(false) }
 
     Surface(
         modifier = Modifier
@@ -117,7 +102,7 @@ fun SettingsScreen(
                 // Add Default (White) option without requiring an image
                 DefaultBackgroundOption(
                     name = stringResource(id = R.string.default_option),
-                    isSelected = appState.backgroundChoice == BackgroundChoice.WHITE,
+                    isSelected = selectedBackgroundChoice == BackgroundChoice.WHITE,
                     onClick = { settingsViewModel.setBackgroundChoice(BackgroundChoice.WHITE) }
                 )
 
@@ -126,7 +111,7 @@ fun SettingsScreen(
                     imageResId = R.drawable.bg_butterfly,
                     name = stringResource(id = R.string.butterfly),
                     choice = BackgroundChoice.BUTTERFLY,
-                    isSelected = appState.backgroundChoice == BackgroundChoice.BUTTERFLY,
+                    isSelected = selectedBackgroundChoice == BackgroundChoice.BUTTERFLY,
                     onClick = { settingsViewModel.setBackgroundChoice(BackgroundChoice.BUTTERFLY) }
                 )
 
@@ -135,7 +120,7 @@ fun SettingsScreen(
                     imageResId = R.drawable.bg_colorful,
                     name = stringResource(id = R.string.colorful),
                     choice = BackgroundChoice.COLORFUL,
-                    isSelected = appState.backgroundChoice == BackgroundChoice.COLORFUL,
+                    isSelected = selectedBackgroundChoice == BackgroundChoice.COLORFUL,
                     onClick = { settingsViewModel.setBackgroundChoice(BackgroundChoice.COLORFUL) }
                 )
             }
@@ -151,7 +136,7 @@ fun SettingsScreen(
                     imageResId = R.drawable.bg_cute,
                     name = stringResource(id = R.string.cute),
                     choice = BackgroundChoice.CUTE,
-                    isSelected = appState.backgroundChoice == BackgroundChoice.CUTE,
+                    isSelected = selectedBackgroundChoice == BackgroundChoice.CUTE,
                     onClick = { settingsViewModel.setBackgroundChoice(BackgroundChoice.CUTE) }
                 )
 
@@ -159,7 +144,7 @@ fun SettingsScreen(
                     imageResId = R.drawable.bg_flowers,
                     name = stringResource(id = R.string.flowers),
                     choice = BackgroundChoice.FLOWERS,
-                    isSelected = appState.backgroundChoice == BackgroundChoice.FLOWERS,
+                    isSelected = selectedBackgroundChoice == BackgroundChoice.FLOWERS,
                     onClick = { settingsViewModel.setBackgroundChoice(BackgroundChoice.FLOWERS) }
                 )
 
@@ -167,7 +152,7 @@ fun SettingsScreen(
                     imageResId = R.drawable.bg_rainbow,
                     name = stringResource(id = R.string.rainbow),
                     choice = BackgroundChoice.RAINBOW,
-                    isSelected = appState.backgroundChoice == BackgroundChoice.RAINBOW,
+                    isSelected = selectedBackgroundChoice == BackgroundChoice.RAINBOW,
                     onClick = { settingsViewModel.setBackgroundChoice(BackgroundChoice.RAINBOW) }
                 )
             }
@@ -183,7 +168,7 @@ fun SettingsScreen(
                     imageResId = R.drawable.bg_shooting_star,
                     name = stringResource(id = R.string.stars),
                     choice = BackgroundChoice.SHOOTING_STAR,
-                    isSelected = appState.backgroundChoice == BackgroundChoice.SHOOTING_STAR,
+                    isSelected = selectedBackgroundChoice == BackgroundChoice.SHOOTING_STAR,
                     onClick = { settingsViewModel.setBackgroundChoice(BackgroundChoice.SHOOTING_STAR) }
                 )
 
@@ -191,34 +176,12 @@ fun SettingsScreen(
                     imageResId = R.drawable.bg_skeleton_head,
                     name = stringResource(id = R.string.skull),
                     choice = BackgroundChoice.SKELETON_HEAD,
-                    isSelected = appState.backgroundChoice == BackgroundChoice.SKELETON_HEAD,
+                    isSelected = selectedBackgroundChoice == BackgroundChoice.SKELETON_HEAD,
                     onClick = { settingsViewModel.setBackgroundChoice(BackgroundChoice.SKELETON_HEAD) }
                 )
 
                 // Empty box to keep the grid balanced
                 Spacer(modifier = Modifier.width(70.dp))
-            }
-
-            // Custom Background Images
-            Text(
-                text = "Custom Backgrounds",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(vertical = 16.dp)
-            )
-
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(customBackgrounds) { background ->
-                    BackgroundItem(
-                        background = background,
-                        isSelected = false, // You'll need to implement selection logic
-                        onSelectBackground = {
-                            // Handle selection of custom background
-                            // You'll need to create a new BackgroundChoice for custom images
-                            // or find a way to store the selected image URI
-                            println("Selected custom background: ${background.name}")
-                        }
-                    )
-                }
             }
 
             Divider(modifier = Modifier.padding(vertical = 8.dp))
@@ -236,9 +199,9 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.titleMedium
                 )
                 Switch(
-                    checked = appState.notificationsEnabled,
+                    checked = notificationsEnabled.value,
                     onCheckedChange = {
-                        settingsViewModel.setNotificationsEnabled(it)
+                        notificationsEnabled.value = it
                     }
                 )
             }
@@ -262,7 +225,7 @@ fun SettingsScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .clickable {
-                                settingsViewModel.setLanguage("English")
+                                language.value = "English"
                             }
                             .padding(horizontal = 8.dp)
                     ) {
@@ -271,17 +234,17 @@ fun SettingsScreen(
                                 .size(40.dp)
                                 .clip(CircleShape)
                                 .border(
-                                    width = if (appState.language == "English") 2.dp else 1.dp,
-                                    color = if (appState.language == "English")
+                                    width = if (language.value == "English") 2.dp else 1.dp,
+                                    color = if (language.value == "English")
                                         MaterialTheme.colorScheme.primary else Color.Gray,
                                     shape = CircleShape
                                 )
-                                .background(if (appState.language == "English")
+                                .background(if (language.value == "English")
                                     MaterialTheme.colorScheme.primaryContainer else Color.Transparent),
                             contentAlignment = Alignment.Center
                         ) {
                             Text("EN")
-                            if (appState.language == "English") {
+                            if (language.value == "English") {
                                 Box(
                                     modifier = Modifier
                                         .matchParentSize()
@@ -296,7 +259,7 @@ fun SettingsScreen(
                             text = stringResource(id = R.string.english),
                             modifier = Modifier.padding(top = 4.dp),
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (appState.language == "English")
+                            color = if (language.value == "English")
                                 MaterialTheme.colorScheme.primary else Color.Gray
                         )
                     }
@@ -308,7 +271,7 @@ fun SettingsScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .clickable {
-                                settingsViewModel.setLanguage("Estonian")
+                                language.value = "Estonian"
                             }
                             .padding(horizontal = 8.dp)
                     ) {
@@ -317,17 +280,17 @@ fun SettingsScreen(
                                 .size(40.dp)
                                 .clip(CircleShape)
                                 .border(
-                                    width = if (appState.language == "Estonian") 2.dp else 1.dp,
-                                    color = if (appState.language == "Estonian")
+                                    width = if (language.value == "Estonian") 2.dp else 1.dp,
+                                    color = if (language.value == "Estonian")
                                         MaterialTheme.colorScheme.primary else Color.Gray,
                                     shape = CircleShape
                                 )
-                                .background(if (appState.language == "Estonian")
+                                .background(if (language.value == "Estonian")
                                     MaterialTheme.colorScheme.primaryContainer else Color.Transparent),
                             contentAlignment = Alignment.Center
                         ) {
                             Text("ET")
-                            if (appState.language == "Estonian") {
+                            if (language.value == "Estonian") {
                                 Box(
                                     modifier = Modifier
                                         .matchParentSize()
@@ -342,7 +305,7 @@ fun SettingsScreen(
                             text = stringResource(id = R.string.estonian),
                             modifier = Modifier.padding(top = 4.dp),
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (appState.language == "Estonian")
+                            color = if (language.value == "Estonian")
                                 MaterialTheme.colorScheme.primary else Color.Gray
                         )
                     }
@@ -362,9 +325,9 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.titleMedium
                 )
                 Switch(
-                    checked = appState.darkModeEnabled,
+                    checked = darkModeEnabled.value,
                     onCheckedChange = {
-                        settingsViewModel.setDarkModeEnabled(it)
+                        darkModeEnabled.value = it
                     }
                 )
             }
@@ -483,4 +446,10 @@ fun BackgroundImageOption(
             color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray
         )
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun SettingsScreenPreview() {
+    SettingsScreen(onNavigateBack = {})
 }

@@ -1,8 +1,8 @@
 package com.example.taskrabbit.ui.theme
 
 data class AppState(
-    val backgroundChoice: BackgroundChoice = BackgroundChoice.WHITE,
-    val notificationsEnabled: Boolean = true,
+    val notificationsEnabled: Boolean = false,
     val language: String = "English",
-    val darkModeEnabled: Boolean = false
+    val darkModeEnabled: Boolean = false,
+    val backgroundChoice: BackgroundChoice = BackgroundChoice.WHITE
 )

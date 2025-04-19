@@ -105,5 +105,12 @@ android {
         implementation("androidx.navigation:navigation-compose:2.7.7")
 
         implementation("io.coil-kt:coil-compose:2.1.0")
+
+        implementation("androidx.datastore:datastore-preferences:1.0.0")
+        implementation("androidx.datastore:datastore-preferences-core:1.0.0")
+
+        implementation("com.jakewharton.threetenabp:threetenabp:1.4.0")
+
+        implementation("androidx.compose.material3:material3:1.2.0")
     }
 }
