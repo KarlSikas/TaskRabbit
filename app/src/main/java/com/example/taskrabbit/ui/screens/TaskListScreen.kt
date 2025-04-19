@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -32,6 +33,7 @@ import androidx.compose.ui.res.painterResource
 import com.example.taskrabbit.viewmodel.SettingsViewModel
 import com.example.taskrabbit.ui.theme.BackgroundChoice
 import androidx.compose.ui.draw.paint
+import androidx.compose.ui.graphics.painter.Painter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,25 +81,6 @@ fun TaskListScreen(
         }
     }
 
-    fun getBackgroundResource(backgroundChoice: BackgroundChoice): Int? {
-        return when (backgroundChoice) {
-            BackgroundChoice.BUTTERFLY -> R.drawable.bg_butterfly
-            BackgroundChoice.COLORFUL -> R.drawable.bg_colorful
-            BackgroundChoice.CUTE -> R.drawable.bg_cute
-            BackgroundChoice.FLOWERS -> R.drawable.bg_flowers
-            BackgroundChoice.RAINBOW -> R.drawable.bg_rainbow
-            BackgroundChoice.SHOOTING_STAR -> R.drawable.bg_shooting_star
-            BackgroundChoice.SKELETON_HEAD -> R.drawable.bg_skeleton_head
-            BackgroundChoice.WHITE -> null
-        }
-    }
-
-    val backgroundResource = getBackgroundResource(themeSettings.backgroundChoice)
-
-    LaunchedEffect(currentViewDate) {
-        viewModel.loadTasksForDate(currentViewDate)
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -138,19 +121,48 @@ fun TaskListScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .then(
-                    if (backgroundResource != null) {
-                        Modifier.paint(painterResource(id = backgroundResource))
-                    } else {
-                        Modifier.background(if (themeSettings.darkModeEnabled) Color.DarkGray else Color.White)
+                .let {
+
+                    val backgroundPainter: Painter? = when (themeSettings.backgroundChoice) {
+                        BackgroundChoice.BUTTERFLY -> painterResource(id = R.drawable.bg_butterfly)
+                        BackgroundChoice.COLORFUL -> painterResource(id = R.drawable.bg_colorful)
+                        BackgroundChoice.CUTE -> painterResource(id = R.drawable.bg_cute)
+                        BackgroundChoice.FLOWERS -> painterResource(id = R.drawable.bg_flowers)
+                        BackgroundChoice.RAINBOW -> painterResource(id = R.drawable.bg_rainbow)
+                        BackgroundChoice.SHOOTING_STAR -> painterResource(id = R.drawable.bg_shooting_star)
+                        BackgroundChoice.SKELETON_HEAD -> painterResource(id = R.drawable.bg_skeleton_head)
+                        BackgroundChoice.WHITE -> null
                     }
-                )
+
+                    if (backgroundPainter != null) {
+                        it.paint(backgroundPainter!!, contentScale = ContentScale.FillBounds)
+                    } else {
+                        it.background(if (themeSettings.darkModeEnabled) Color.DarkGray else Color.White)
+                    }
+                }
         ) {
-            TaskListContent(
-                paddingValues = paddingValues,
-                tasksForDate = tasksForDate,
-                onDeleteTask = { taskId -> viewModel.deleteTask(taskId) }
-            )
+            if (tasksForDate.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(stringResource(R.string.no_tasks_for_date))
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    items(tasksForDate, key = { task -> task.id }) { task ->
+                        TaskItemCard(
+                            task = task,
+                            onDelete = { taskId -> viewModel.deleteTask(taskId) }
+                        )
+                        Divider()
+                    }
+                }
+            }
         }
     }
 }
@@ -200,42 +212,6 @@ private fun TaskInputBar(
 }
 
 @Composable
-private fun TaskListContent(
-    paddingValues: PaddingValues,
-    tasksForDate: List<TaskItem>,
-    onDeleteTask: (Long) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
-    ) {
-        if (tasksForDate.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(stringResource(R.string.no_tasks_for_date))
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp)
-            ) {
-                items(tasksForDate, key = { task -> task.id }) { task ->
-                    TaskItemCard(
-                        task = task,
-                        onDelete = onDeleteTask
-                    )
-                    Divider()
-                }
-            }
-        }
-    }
-}
-
-@Composable
 fun TaskItemCard(
     task: TaskItem,
     onDelete: (Long) -> Unit
@@ -253,7 +229,7 @@ fun TaskItemCard(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = task.title, // Corrected: use task.title instead of task.name
+                text = task.title,
                 style = MaterialTheme.typography.bodyLarge
             )
             IconButton(onClick = { onDelete(task.id) }) {

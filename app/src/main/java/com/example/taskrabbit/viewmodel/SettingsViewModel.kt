@@ -19,8 +19,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
 import com.example.taskrabbit.TaskRabbitApplication
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.lifecycle.ViewModelProvider
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 
-class SettingsViewModel() : ViewModel() {
+class SettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val _appState = MutableStateFlow(AppState())
     val appState: StateFlow<AppState> = _appState.asStateFlow()
     private val _themeSettings = MutableStateFlow(ThemeSettings())
@@ -38,24 +41,34 @@ class SettingsViewModel() : ViewModel() {
                     preferences[BACKGROUND_CHOICE_KEY] ?: BackgroundChoice.WHITE.name
                 }.first()
             val storedDarkMode = dataStore.data
-                .map {preferences ->
+                .map { preferences ->
                     preferences[DARK_MODE_KEY] ?: false
                 }.first()
 
-            _themeSettings.value = ThemeSettings(backgroundChoice = BackgroundChoice.valueOf(storedBackgroundChoice), darkModeEnabled = storedDarkMode)
-            _appState.value = _appState.value.copy(backgroundChoice = BackgroundChoice.valueOf(storedBackgroundChoice), darkModeEnabled = storedDarkMode)
+            _themeSettings.value = ThemeSettings(
+                backgroundChoice = BackgroundChoice.valueOf(storedBackgroundChoice),
+                darkModeEnabled = storedDarkMode
+            )
+            _appState.value = _appState.value.copy(
+                backgroundChoice = BackgroundChoice.valueOf(storedBackgroundChoice),
+                darkModeEnabled = storedDarkMode
+            )
         }
     }
 
-    fun setBackgroundChoice(backgroundChoice: BackgroundChoice) {
+    fun updateThemeSettings(themeSettings: ThemeSettings) {
         viewModelScope.launch {
             dataStore.edit { preferences ->
-                preferences[BACKGROUND_CHOICE_KEY] = backgroundChoice.name
+                preferences[BACKGROUND_CHOICE_KEY] = themeSettings.backgroundChoice.name
+                preferences[DARK_MODE_KEY] = themeSettings.darkModeEnabled
             }
-            _themeSettings.value = _themeSettings.value.copy(backgroundChoice = backgroundChoice)
-            _appState.value = _appState.value.copy(backgroundChoice = backgroundChoice)
+            _themeSettings.value = themeSettings
+            _appState.value = _appState.value.copy(
+                backgroundChoice = themeSettings.backgroundChoice,
+                darkModeEnabled = themeSettings.darkModeEnabled
+            )
+            Log.d("SettingsViewModel", "Theme settings updated: $themeSettings")
         }
-        Log.d("SettingsViewModel", "Background choice set to: $backgroundChoice")
     }
 
     fun setNotificationsEnabled(enabled: Boolean) {
@@ -66,18 +79,16 @@ class SettingsViewModel() : ViewModel() {
         _appState.value = _appState.value.copy(language = language)
     }
 
-    fun setDarkModeEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            dataStore.edit { preferences ->
-                preferences[DARK_MODE_KEY] = enabled
-            }
-            _themeSettings.value = _themeSettings.value.copy(darkModeEnabled = enabled)
-            _appState.value = _appState.value.copy(darkModeEnabled = enabled)
-        }
-    }
-
     companion object {
         private val BACKGROUND_CHOICE_KEY = stringPreferencesKey("background_choice")
         private val DARK_MODE_KEY = booleanPreferencesKey("dark_mode")
+
+        fun Factory(application: Application): ViewModelProvider.Factory {
+            return object : ViewModelProvider.Factory {
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    return SettingsViewModel(application) as T
+                }
+            }
+        }
     }
 }

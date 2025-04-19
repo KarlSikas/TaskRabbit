@@ -1,6 +1,7 @@
 package com.example.taskrabbit.ui.screens
 
 import android.annotation.SuppressLint
+import android.app.Application
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -45,10 +46,8 @@ fun SettingsScreen(
 ) {
     val scrollState = rememberScrollState()
     val themeSettings by settingsViewModel.themeSettings.collectAsState()
-    val selectedBackgroundChoice = themeSettings.backgroundChoice
     val notificationsEnabled = remember { mutableStateOf(false) }
     val language = remember { mutableStateOf("English") }
-    val darkModeEnabled = remember { mutableStateOf(false) }
 
     Surface(
         modifier = Modifier
@@ -102,8 +101,10 @@ fun SettingsScreen(
                 // Add Default (White) option without requiring an image
                 DefaultBackgroundOption(
                     name = stringResource(id = R.string.default_option),
-                    isSelected = selectedBackgroundChoice == BackgroundChoice.WHITE,
-                    onClick = { settingsViewModel.setBackgroundChoice(BackgroundChoice.WHITE) }
+                    isSelected = themeSettings.backgroundChoice == BackgroundChoice.WHITE,
+                    onClick = {
+                        settingsViewModel.updateThemeSettings(themeSettings.copy(backgroundChoice = BackgroundChoice.WHITE))
+                    }
                 )
 
                 // Butterfly option
@@ -111,8 +112,10 @@ fun SettingsScreen(
                     imageResId = R.drawable.bg_butterfly,
                     name = stringResource(id = R.string.butterfly),
                     choice = BackgroundChoice.BUTTERFLY,
-                    isSelected = selectedBackgroundChoice == BackgroundChoice.BUTTERFLY,
-                    onClick = { settingsViewModel.setBackgroundChoice(BackgroundChoice.BUTTERFLY) }
+                    isSelected = themeSettings.backgroundChoice == BackgroundChoice.BUTTERFLY,
+                    onClick = {
+                        settingsViewModel.updateThemeSettings(themeSettings.copy(backgroundChoice = BackgroundChoice.BUTTERFLY))
+                    }
                 )
 
                 // Colorful option
@@ -120,8 +123,10 @@ fun SettingsScreen(
                     imageResId = R.drawable.bg_colorful,
                     name = stringResource(id = R.string.colorful),
                     choice = BackgroundChoice.COLORFUL,
-                    isSelected = selectedBackgroundChoice == BackgroundChoice.COLORFUL,
-                    onClick = { settingsViewModel.setBackgroundChoice(BackgroundChoice.COLORFUL) }
+                    isSelected = themeSettings.backgroundChoice == BackgroundChoice.COLORFUL,
+                    onClick = {
+                        settingsViewModel.updateThemeSettings(themeSettings.copy(backgroundChoice = BackgroundChoice.COLORFUL))
+                    }
                 )
             }
 
@@ -136,24 +141,30 @@ fun SettingsScreen(
                     imageResId = R.drawable.bg_cute,
                     name = stringResource(id = R.string.cute),
                     choice = BackgroundChoice.CUTE,
-                    isSelected = selectedBackgroundChoice == BackgroundChoice.CUTE,
-                    onClick = { settingsViewModel.setBackgroundChoice(BackgroundChoice.CUTE) }
+                    isSelected = themeSettings.backgroundChoice == BackgroundChoice.CUTE,
+                    onClick = {
+                        settingsViewModel.updateThemeSettings(themeSettings.copy(backgroundChoice = BackgroundChoice.CUTE))
+                    }
                 )
 
                 BackgroundImageOption(
                     imageResId = R.drawable.bg_flowers,
                     name = stringResource(id = R.string.flowers),
                     choice = BackgroundChoice.FLOWERS,
-                    isSelected = selectedBackgroundChoice == BackgroundChoice.FLOWERS,
-                    onClick = { settingsViewModel.setBackgroundChoice(BackgroundChoice.FLOWERS) }
+                    isSelected = themeSettings.backgroundChoice == BackgroundChoice.FLOWERS,
+                    onClick = {
+                        settingsViewModel.updateThemeSettings(themeSettings.copy(backgroundChoice = BackgroundChoice.FLOWERS))
+                    }
                 )
 
                 BackgroundImageOption(
                     imageResId = R.drawable.bg_rainbow,
                     name = stringResource(id = R.string.rainbow),
                     choice = BackgroundChoice.RAINBOW,
-                    isSelected = selectedBackgroundChoice == BackgroundChoice.RAINBOW,
-                    onClick = { settingsViewModel.setBackgroundChoice(BackgroundChoice.RAINBOW) }
+                    isSelected = themeSettings.backgroundChoice == BackgroundChoice.RAINBOW,
+                    onClick = {
+                        settingsViewModel.updateThemeSettings(themeSettings.copy(backgroundChoice = BackgroundChoice.RAINBOW))
+                    }
                 )
             }
 
@@ -168,16 +179,20 @@ fun SettingsScreen(
                     imageResId = R.drawable.bg_shooting_star,
                     name = stringResource(id = R.string.stars),
                     choice = BackgroundChoice.SHOOTING_STAR,
-                    isSelected = selectedBackgroundChoice == BackgroundChoice.SHOOTING_STAR,
-                    onClick = { settingsViewModel.setBackgroundChoice(BackgroundChoice.SHOOTING_STAR) }
+                    isSelected = themeSettings.backgroundChoice == BackgroundChoice.SHOOTING_STAR,
+                    onClick = {
+                        settingsViewModel.updateThemeSettings(themeSettings.copy(backgroundChoice = BackgroundChoice.SHOOTING_STAR))
+                    }
                 )
 
                 BackgroundImageOption(
                     imageResId = R.drawable.bg_skeleton_head,
                     name = stringResource(id = R.string.skull),
                     choice = BackgroundChoice.SKELETON_HEAD,
-                    isSelected = selectedBackgroundChoice == BackgroundChoice.SKELETON_HEAD,
-                    onClick = { settingsViewModel.setBackgroundChoice(BackgroundChoice.SKELETON_HEAD) }
+                    isSelected = themeSettings.backgroundChoice == BackgroundChoice.SKELETON_HEAD,
+                    onClick = {
+                        settingsViewModel.updateThemeSettings(themeSettings.copy(backgroundChoice = BackgroundChoice.SKELETON_HEAD))
+                    }
                 )
 
                 // Empty box to keep the grid balanced
@@ -325,9 +340,9 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.titleMedium
                 )
                 Switch(
-                    checked = darkModeEnabled.value,
-                    onCheckedChange = {
-                        darkModeEnabled.value = it
+                    checked = themeSettings.darkModeEnabled,
+                    onCheckedChange = { isChecked ->
+                        settingsViewModel.updateThemeSettings(themeSettings.copy(darkModeEnabled = isChecked))
                     }
                 )
             }
