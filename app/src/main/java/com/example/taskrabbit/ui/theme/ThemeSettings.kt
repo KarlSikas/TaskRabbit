@@ -1,5 +1,6 @@
-package com.example.taskrabbit.ui.theme // or com.example.taskrabbit.data.settings
+package com.example.taskrabbit.ui.theme
 
 data class ThemeSettings(
-    val darkModeEnabled: Boolean = false // Default value
+    val darkModeEnabled: Boolean = false,
+    val backgroundChoice: BackgroundChoice = BackgroundChoice.WHITE // Default background
 )

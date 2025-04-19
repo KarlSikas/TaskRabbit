@@ -30,11 +30,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            // Get the SettingsViewModel
+            val settingsViewModel: SettingsViewModel = viewModel()
+            val themeSettings by settingsViewModel.themeSettings.collectAsState()
+
             TaskRabbitTheme {
                 val navController = rememberNavController()
-
-                // Get the SettingsViewModel
-                val settingsViewModel: SettingsViewModel = viewModel()
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     NavHost(

@@ -32,6 +32,10 @@ import com.example.taskrabbit.ui.theme.BackgroundChoice
 import com.example.taskrabbit.viewmodel.SettingsViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import com.example.taskrabbit.data.BackgroundImage // Import BackgroundImage
+import com.example.taskrabbit.ui.components.BackgroundItem // Import BackgroundItem
 
 @SuppressLint("SimpleDateFormat")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,6 +46,24 @@ fun SettingsScreen(
 ) {
     val scrollState = rememberScrollState()
     val appState by settingsViewModel.appState.collectAsState()
+
+    // List of custom background images (replace with your actual data)
+    val customBackgrounds = remember {
+        mutableStateListOf(
+            BackgroundImage(
+                id = 1,
+                name = "Custom 1",
+                uri = "https://example.com/custom1.jpg", // Replace with your image URI
+                isAsset = false
+            ),
+            BackgroundImage(
+                id = 2,
+                name = "Custom 2",
+                uri = "https://example.com/custom2.jpg", // Replace with your image URI
+                isAsset = false
+            )
+        )
+    }
 
     Surface(
         modifier = Modifier
@@ -175,6 +197,28 @@ fun SettingsScreen(
 
                 // Empty box to keep the grid balanced
                 Spacer(modifier = Modifier.width(70.dp))
+            }
+
+            // Custom Background Images
+            Text(
+                text = "Custom Backgrounds",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
+
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(customBackgrounds) { background ->
+                    BackgroundItem(
+                        background = background,
+                        isSelected = false, // You'll need to implement selection logic
+                        onSelectBackground = {
+                            // Handle selection of custom background
+                            // You'll need to create a new BackgroundChoice for custom images
+                            // or find a way to store the selected image URI
+                            println("Selected custom background: ${background.name}")
+                        }
+                    )
+                }
             }
 
             Divider(modifier = Modifier.padding(vertical = 8.dp))
