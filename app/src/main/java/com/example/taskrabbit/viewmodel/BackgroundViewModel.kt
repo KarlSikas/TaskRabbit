@@ -19,6 +19,7 @@ class BackgroundViewModel(application: Application) : AndroidViewModel(applicati
 
     private val backgroundDao = AppDatabase.getDatabase(application).backgroundDao()
 
+    // MutableStateFlow for the lists of backgrounds
     private val _freeBackgrounds = MutableStateFlow<List<BackgroundImage>>(emptyList())
     val freeBackgrounds: StateFlow<List<BackgroundImage>> = _freeBackgrounds.asStateFlow()
 
@@ -35,26 +36,22 @@ class BackgroundViewModel(application: Application) : AndroidViewModel(applicati
         loadBackgrounds()
     }
 
+    // Simplified method to load backgrounds
     private fun loadBackgrounds() {
         viewModelScope.launch {
-            launch {
-                backgroundDao.getAssetBackgrounds().collect { backgrounds ->
-                    _freeBackgrounds.value = backgrounds
-                }
+            backgroundDao.getAssetBackgrounds().collect { backgrounds ->
+                _freeBackgrounds.value = backgrounds
             }
-            launch {
-                backgroundDao.getPremiumBackgrounds().collect { backgrounds ->
-                    _premiumBackgrounds.value = backgrounds
-                }
+            backgroundDao.getPremiumBackgrounds().collect { backgrounds ->
+                _premiumBackgrounds.value = backgrounds
             }
-            launch {
-                backgroundDao.getUserBackgrounds().collect { backgrounds ->
-                    _userBackgrounds.value = backgrounds
-                }
+            backgroundDao.getUserBackgrounds().collect { backgrounds ->
+                _userBackgrounds.value = backgrounds
             }
         }
     }
 
+    // Select background (sets the selected background state)
     fun selectBackground(background: BackgroundImage) {
         _selectedBackground.value = background
     }
@@ -70,14 +67,25 @@ class BackgroundViewModel(application: Application) : AndroidViewModel(applicati
             isPremium = false
         )
 
+        // Insert new background in the database and refresh the user backgrounds list
         viewModelScope.launch(Dispatchers.IO) {
             backgroundDao.insertBackground(newBackground)
-            loadBackgrounds() // Refresh the backgrounds
+            loadUserBackgrounds()  // Refresh only the user backgrounds
         }
 
-        return newBackground // Return the newly created background
+        return newBackground
     }
 
+    // Load user backgrounds separately after adding a new one
+    private fun loadUserBackgrounds() {
+        viewModelScope.launch {
+            backgroundDao.getUserBackgrounds().collect { backgrounds ->
+                _userBackgrounds.value = backgrounds
+            }
+        }
+    }
+
+    // Factory to create an instance of BackgroundViewModel
     class Factory(private val application: Application) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(BackgroundViewModel::class.java)) {
