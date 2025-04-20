@@ -1,5 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
-    <style name="Theme.TaskRabbit" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Base application theme. -->
+    <!-- Changed parent to a MaterialComponents theme -->
+    <style name="Theme.TaskRabbit" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- You can customize your colors, fonts, etc., here if needed -->
+        <!-- Example primary color (replace with your actual colors) -->
+        <!-- <item name="colorPrimary">@color/purple_500</item> -->
+        <!-- <item name="colorPrimaryVariant">@color/purple_700</item> -->
+        <!-- <item name="colorOnPrimary">@color/white</item> -->
+        <!-- Example secondary color (replace with your actual colors) -->
+        <!-- <item name="colorSecondary">@color/teal_200</item> -->
+        <!-- <item name="colorSecondaryVariant">@color/teal_700</item> -->
+        <!-- <item name="colorOnSecondary">@color/black</item> -->
+        <!-- Status bar color. -->
+        <!-- <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item> -->
+    </style>
+
+    <!-- Define your Splash Screen Theme if you haven't already -->
+    <!-- Ensure the 'postSplashScreenTheme' points to your main theme -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <!-- Set the splash screen background, animated icon, etc. -->
+        <!-- Replace with your actual splash screen colors/drawables -->
+        <item name="windowSplashScreenBackground">@android:color/white</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.TaskRabbit</item> <!-- Correct: Points to your main app theme -->
+    </style>
+
 </resources>

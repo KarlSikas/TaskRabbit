@@ -52,6 +52,13 @@ import android.content.pm.PackageManager
 import android.os.Build
 // --- END Permission Handling Imports ---
 
+// --- ADDED Imports for Restart Logic ---
+import android.content.Context
+import android.content.Intent
+import com.example.taskrabbit.MainActivity
+// --- END ADDED Imports ---
+
+
 // Define language codes as constants
 private const val LANG_EN = "en"
 private const val LANG_ET = "et"
@@ -82,11 +89,9 @@ fun SettingsScreen(
     val currentLanguage by settingsViewModel.currentLanguagePreference.collectAsState()
 
     val scrollState = rememberScrollState()
-    val context = LocalContext.current
+    val context = LocalContext.current // Needed for restarting and other context uses
 
     // --- State for Notifications Toggle ---
-    // IMPORTANT: This uses local 'remember'. For persistence across app restarts,
-    // this state and the associated permission logic should be moved into the SettingsViewModel.
     val notificationsEnabled = remember { mutableStateOf(false) }
     // --- END State ---
 
@@ -95,25 +100,21 @@ fun SettingsScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         if (isGranted) {
-            // Permission GRANTED: Now update the state
             notificationsEnabled.value = true
             Log.d("SettingsScreen", "Notification permission GRANTED.")
-            // TODO: Persist this preference via ViewModel if needed (e.g., settingsViewModel.updateNotificationPreference(true))
+            // TODO: Persist this preference via ViewModel if needed
         } else {
-            // Permission DENIED: Keep the switch off (state is already false or wasn't changed)
-            notificationsEnabled.value = false // Ensure it's off
+            notificationsEnabled.value = false
             Log.w("SettingsScreen", "Notification permission DENIED.")
             // TODO: Show rationale or guide user to settings if needed
-            // TODO: Persist this preference via ViewModel if needed (e.g., settingsViewModel.updateNotificationPreference(false))
+            // TODO: Persist this preference via ViewModel if needed
         }
     }
     // --- END Permission Launcher ---
 
     // --- Effect to Check Initial Notification Permission Status ---
-    // This runs once when the composable enters the composition or context changes.
-    // It sets the initial state of the toggle based on the current permission.
     LaunchedEffect(key1 = context) {
-        if (notificationPermission.isNotEmpty()) { // Only check if permission exists (Android 13+)
+        if (notificationPermission.isNotEmpty()) {
             val isGranted = ContextCompat.checkSelfPermission(
                 context,
                 notificationPermission
@@ -121,12 +122,8 @@ fun SettingsScreen(
             notificationsEnabled.value = isGranted
             Log.d("SettingsScreen", "Initial notification permission check: isGranted=$isGranted")
         } else {
-            // On older versions, assume notifications are "enabled" based on user preference (if stored).
-            // If no preference is stored, you might default to true or false based on app logic.
             Log.d("SettingsScreen", "Skipping initial notification permission check (pre-Android 13). Loading preference instead.")
-            // Example: Load preference from ViewModel (assuming it exists)
-            // notificationsEnabled.value = settingsViewModel.getNotificationPreference() // Replace with actual ViewModel call
-            // For now, keeping the default 'false' from remember unless preference is loaded.
+            // TODO: Load preference from ViewModel if persisted
         }
     }
     // --- END Initial Check Effect ---
@@ -269,7 +266,7 @@ fun SettingsScreen(
                     )
                 }
 
-                // --- UPDATED Notifications toggle ---
+                // --- Notifications toggle (Keep as is) ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -317,9 +314,9 @@ fun SettingsScreen(
                         }
                     )
                 }
-                // --- END UPDATED Notifications toggle ---
+                // --- END Notifications toggle ---
 
-                // --- Language selection BLOCK (Keep as is) ---
+                // --- *** Language selection BLOCK (With Restart Logic) *** ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -338,18 +335,40 @@ fun SettingsScreen(
                             languageCode = LANG_EN,
                             languageNameResId = R.string.english,
                             isSelected = currentLanguage == LANG_EN,
-                            onClick = { settingsViewModel.updateLanguage(LANG_EN) }
+                            onClick = {
+                                // Only act if the language is actually changing
+                                if (currentLanguage != LANG_EN) {
+                                    Log.d("SettingsScreen", "English selected. Updating language and restarting.")
+                                    // 1. Tell ViewModel to save preference and apply locale
+                                    settingsViewModel.updateLanguage(LANG_EN)
+                                    // 2. Immediately trigger app restart
+                                    restartApp(context) // <<< RESTART CALL
+                                } else {
+                                    Log.d("SettingsScreen", "English already selected. No action needed.")
+                                }
+                            }
                         )
                         Spacer(modifier = Modifier.width(16.dp))
                         LanguageOption(
                             languageCode = LANG_ET,
                             languageNameResId = R.string.estonian,
                             isSelected = currentLanguage == LANG_ET,
-                            onClick = { settingsViewModel.updateLanguage(LANG_ET) }
+                            onClick = {
+                                // Only act if the language is actually changing
+                                if (currentLanguage != LANG_ET) {
+                                    Log.d("SettingsScreen", "Estonian selected. Updating language and restarting.")
+                                    // 1. Tell ViewModel to save preference and apply locale
+                                    settingsViewModel.updateLanguage(LANG_ET)
+                                    // 2. Immediately trigger app restart
+                                    restartApp(context) // <<< RESTART CALL
+                                } else {
+                                    Log.d("SettingsScreen", "Estonian already selected. No action needed.")
+                                }
+                            }
                         )
                     }
                 }
-                // --- END of Language selection BLOCK ---
+                // --- *** END of Language selection BLOCK *** ---
 
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -372,6 +391,25 @@ fun SettingsScreen(
         } // End Box
     } // End Surface
 }
+
+// --- ADDED Helper Function to Restart MainActivity ---
+private fun restartApp(context: Context) {
+    Log.i("SettingsScreen", "Restarting MainActivity to apply locale change.")
+    // Create Intent to launch the main activity
+    val intent = Intent(context, MainActivity::class.java).apply {
+        // Flags ensure that the previous task is cleared and MainActivity starts fresh
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+    }
+    // Start the new activity instance
+    context.startActivity(intent)
+
+    // Finish the current task/activity stack to ensure a clean restart
+    if (context is android.app.Activity) {
+        context.finishAffinity() // Closes all activities in the current task
+    }
+}
+// --- END ADDED Helper Function ---
+
 
 // --- LanguageOption Composable (Keep as is) ---
 @Composable
@@ -518,7 +556,7 @@ fun BackgroundImageOption(
 @Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES, name = "Settings Preview Dark")
 @Composable
 private fun SettingsScreenPreview() {
-    // ... (Fake state holder and ViewModel setup remains the same)
+    // Fake state holder and ViewModel setup
     class FakeSettingsStateHolder {
         private val _themeSettings = MutableStateFlow(ThemeSettings(darkModeEnabled = false, backgroundChoice = BackgroundChoice.BUTTERFLY))
         val themeSettings: StateFlow<ThemeSettings> = _themeSettings
@@ -536,6 +574,7 @@ private fun SettingsScreenPreview() {
         object : SettingsViewModel(context.applicationContext as Application) {
             override val currentLanguagePreference: StateFlow<String> get() = fakeState.currentLanguagePreference
             override fun updateThemeSettings(newSettings: ThemeSettings) { fakeState.updateThemeSettings(newSettings) }
+            // Preview doesn't need restart logic, so fake updateLanguage is fine
             override fun updateLanguage(languageCode: String) { fakeState.updateLanguage(languageCode) }
         }
     }
