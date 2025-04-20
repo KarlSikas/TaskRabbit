@@ -11,12 +11,12 @@ plugins {
 android {
     namespace = "com.example.taskrabbit"
     // Use a stable SDK, 34 is generally recommended if targeting 26.
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.taskrabbit"
         minSdk = 26 // <<< Set to 26 as requested
-        targetSdk = 26 // <<< Set to 26 as requested
+        targetSdk = 34 // <<< Set to 26 as requested
         versionCode = 1
         versionName = "1.0"
 
@@ -133,4 +133,10 @@ dependencies {
 
     // SplashScreen
     implementation("androidx.core:core-splashscreen:$splashscreenVersion")
+
+    implementation("androidx.compose.runtime:runtime-livedata:1.6.7")
+
+    implementation("androidx.appcompat:appcompat:1.6.1")
+
+    implementation("androidx.navigation:navigation-compose:2.7.7")
 }

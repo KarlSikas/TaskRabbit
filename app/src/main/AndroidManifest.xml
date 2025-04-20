@@ -1,44 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+          xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- KEEP EXISTING PERMISSIONS -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" /> <!-- Needed for Android 13+ -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/> <!-- For rescheduling on boot -->
+
+    <!-- >>> ADD THIS PERMISSION FOR EXACT ALARMS <<< -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" /> <!-- Needed for Android 12+ -->
+
 
     <application
-        android:name=".TaskRabbitApplication"
-        android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.TaskRabbit"
-        tools:targetApi="33">
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
+            android:name=".TaskRabbitApplication"
+            android:allowBackup="true"
+            android:dataExtractionRules="@xml/data_extraction_rules"
+            android:fullBackupContent="@xml/backup_rules"
+            android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name"
-            android:theme="@style/Theme.TaskRabbit">
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:supportsRtl="true"
+            android:theme="@style/Theme.TaskRabbit"
+            tools:targetApi="33"> <!-- Consider setting targetApi to 34 if possible -->
+
+        <activity
+                android:name=".MainActivity"
+                android:exported="true"
+                android:label="@string/app_name"
+                android:theme="@style/Theme.TaskRabbit"> <!-- Ensure your splash screen theme is applied correctly if needed -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <!-- Optional: Add a BroadcastReceiver to handle boot completion -->
+        <!-- Receiver for rescheduling alarms after device reboot -->
+        <!-- Make sure BootReceiver.kt exists and implements rescheduling logic -->
         <receiver android:name=".BootReceiver"
-            android:enabled="true"
-            android:exported="false">
+                  android:enabled="true"
+                  android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <!-- Some devices might use QUICKBOOT_POWERON -->
                 <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
             </intent-filter>
         </receiver>
+
+        <!-- >>> ADD REGISTRATION FOR YOUR REMINDER RECEIVER <<< -->
+        <receiver
+                android:name=".ReminderReceiver"
+                android:enabled="true"
+                android:exported="false" />
+        <!-- exported="false" is correct as only AlarmManager should trigger it -->
+
     </application>
 
 </manifest>

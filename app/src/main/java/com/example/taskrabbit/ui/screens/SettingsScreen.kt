@@ -1,6 +1,8 @@
 package com.example.taskrabbit.ui.screens
 
+import android.Manifest // <<< Import Manifest
 import android.annotation.SuppressLint
+import androidx.annotation.StringRes // Added for LanguageOption
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,8 +16,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
-import androidx.compose.runtime.*      // Keep existing imports
-import androidx.compose.runtime.getValue // Import collectAsState's extension function
+import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue // Keep this import
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,65 +29,134 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.taskrabbit.R
 import com.example.taskrabbit.ui.theme.BackgroundChoice
 import com.example.taskrabbit.viewmodel.SettingsViewModel
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.taskrabbit.ui.theme.ThemeSettings
-import com.example.taskrabbit.ui.theme.AppThemeSettings // Import AppThemeSettings
+import com.example.taskrabbit.ui.theme.AppThemeSettings
+import android.app.Application // Added for Preview
+import androidx.annotation.DrawableRes // Added for BackgroundImageOption
+import androidx.compose.material3.darkColorScheme // Added for Preview
+import androidx.compose.material3.lightColorScheme // Added for Preview
+import kotlinx.coroutines.flow.MutableStateFlow // Added for Preview
+import kotlinx.coroutines.flow.StateFlow // Added for Preview
+import android.util.Log
+import androidx.compose.ui.platform.LocalConfiguration
+import com.example.taskrabbit.ui.theme.ThemeSettings // Keep for Preview state holder
+
+// --- ADD Permission Handling Imports ---
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
+import android.os.Build
+// --- END Permission Handling Imports ---
+
+// Define language codes as constants
+private const val LANG_EN = "en"
+private const val LANG_ET = "et"
+
+// Define permission constant (needed for Android 13+)
+private val notificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    Manifest.permission.POST_NOTIFICATIONS
+} else {
+    "" // Indicate no specific permission needed for older versions
+}
 
 @SuppressLint("SimpleDateFormat")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    onNavigateBack: () -> Unit = {},
-    // themeSettings parameter is still passed but we'll primarily use the collected state
-    themeSettings: ThemeSettings,
+    onNavigateBack: () -> Unit,
     settingsViewModel: SettingsViewModel
 ) {
-    // --- Collect the state flow ---
-    // `currentThemeSettings` will automatically update when AppThemeSettings.themeSettings changes.
+    Log.d("SettingsScreen", "SettingsScreen composable CALLED")
+
+    val configuration = LocalConfiguration.current
+    LaunchedEffect(configuration) { /* ... Locale Logging ... */ }
+
+    // Collect theme state from global settings
     val currentThemeSettings by AppThemeSettings.themeSettings.collectAsState()
-    // --- End state collection ---
+
+    // Collect language state from the ViewModel
+    val currentLanguage by settingsViewModel.currentLanguagePreference.collectAsState()
 
     val scrollState = rememberScrollState()
-    val notificationsEnabled = remember { mutableStateOf(false) } // Local state for notifications
-    val language = remember { mutableStateOf("English") }         // Local state for language
     val context = LocalContext.current
 
-    // --- Use collected state for background ---
-    // Use `currentThemeSettings` to get the background painter and color
+    // --- State for Notifications Toggle ---
+    // IMPORTANT: This uses local 'remember'. For persistence across app restarts,
+    // this state and the associated permission logic should be moved into the SettingsViewModel.
+    val notificationsEnabled = remember { mutableStateOf(false) }
+    // --- END State ---
+
+    // --- Permission Launcher for Notifications ---
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            // Permission GRANTED: Now update the state
+            notificationsEnabled.value = true
+            Log.d("SettingsScreen", "Notification permission GRANTED.")
+            // TODO: Persist this preference via ViewModel if needed (e.g., settingsViewModel.updateNotificationPreference(true))
+        } else {
+            // Permission DENIED: Keep the switch off (state is already false or wasn't changed)
+            notificationsEnabled.value = false // Ensure it's off
+            Log.w("SettingsScreen", "Notification permission DENIED.")
+            // TODO: Show rationale or guide user to settings if needed
+            // TODO: Persist this preference via ViewModel if needed (e.g., settingsViewModel.updateNotificationPreference(false))
+        }
+    }
+    // --- END Permission Launcher ---
+
+    // --- Effect to Check Initial Notification Permission Status ---
+    // This runs once when the composable enters the composition or context changes.
+    // It sets the initial state of the toggle based on the current permission.
+    LaunchedEffect(key1 = context) {
+        if (notificationPermission.isNotEmpty()) { // Only check if permission exists (Android 13+)
+            val isGranted = ContextCompat.checkSelfPermission(
+                context,
+                notificationPermission
+            ) == PackageManager.PERMISSION_GRANTED
+            notificationsEnabled.value = isGranted
+            Log.d("SettingsScreen", "Initial notification permission check: isGranted=$isGranted")
+        } else {
+            // On older versions, assume notifications are "enabled" based on user preference (if stored).
+            // If no preference is stored, you might default to true or false based on app logic.
+            Log.d("SettingsScreen", "Skipping initial notification permission check (pre-Android 13). Loading preference instead.")
+            // Example: Load preference from ViewModel (assuming it exists)
+            // notificationsEnabled.value = settingsViewModel.getNotificationPreference() // Replace with actual ViewModel call
+            // For now, keeping the default 'false' from remember unless preference is loaded.
+        }
+    }
+    // --- END Initial Check Effect ---
+
+
     val backgroundPainter: Painter? = AppThemeSettings.getBackgroundImagePainter(currentThemeSettings, context)
     val backgroundColor = AppThemeSettings.getBackgroundColor(currentThemeSettings, context)
-    // --- End background usage ---
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background // Fallback background
+        color = MaterialTheme.colorScheme.background
     ) {
-        Box(modifier = Modifier.fillMaxSize()) { // Use Box for layering
-
-            // Apply background image if one is selected
+        Box(modifier = Modifier.fillMaxSize()) {
             if (backgroundPainter != null) {
                 Image(
                     painter = backgroundPainter,
-                    contentDescription = null, // Decorative background
+                    contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
             }
 
-            // Content Column
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    // Apply solid background color *only* if there's no image painter
                     .background(if (backgroundPainter == null) backgroundColor else Color.Transparent)
                     .padding(16.dp)
-                    .verticalScroll(scrollState) // Make the content scrollable over the background
+                    .verticalScroll(scrollState)
             ) {
-                // Top bar with back button
+                // --- Top bar (Keep as is) ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -97,7 +168,9 @@ fun SettingsScreen(
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        stringResource(id = R.string.settings),
+                        text = stringResource(id = R.string.settings).also {
+                            Log.d("SettingsScreen", "Looked up R.string.settings: '$it'")
+                        },
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -105,14 +178,12 @@ fun SettingsScreen(
 
                 Divider(modifier = Modifier.padding(vertical = 8.dp))
 
-                // Background image choices title
+                // --- Background image choices (Keep as is) ---
                 Text(
                     stringResource(id = R.string.background_images),
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(vertical = 16.dp)
                 )
-
-                // --- Background Image Rows (Use collected state) ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -121,21 +192,20 @@ fun SettingsScreen(
                 ) {
                     DefaultBackgroundOption(
                         name = stringResource(id = R.string.default_option),
-                        isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.WHITE, // Use collected state
+                        isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.WHITE,
                         onClick = { settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.WHITE)) }
                     )
                     BackgroundImageOption(
                         imageResId = R.drawable.bg_butterfly, name = stringResource(id = R.string.butterfly), choice = BackgroundChoice.BUTTERFLY,
-                        isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.BUTTERFLY, // Use collected state
+                        isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.BUTTERFLY,
                         onClick = { settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.BUTTERFLY)) }
                     )
                     BackgroundImageOption(
                         imageResId = R.drawable.bg_colorful, name = stringResource(id = R.string.colorful), choice = BackgroundChoice.COLORFUL,
-                        isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.COLORFUL, // Use collected state
+                        isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.COLORFUL,
                         onClick = { settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.COLORFUL)) }
                     )
                 }
-                // Second row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -144,21 +214,20 @@ fun SettingsScreen(
                 ) {
                     BackgroundImageOption(
                         imageResId = R.drawable.bg_cute, name = stringResource(id = R.string.cute), choice = BackgroundChoice.CUTE,
-                        isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.CUTE, // Use collected state
+                        isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.CUTE,
                         onClick = { settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.CUTE)) }
                     )
                     BackgroundImageOption(
                         imageResId = R.drawable.bg_flowers, name = stringResource(id = R.string.flowers), choice = BackgroundChoice.FLOWERS,
-                        isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.FLOWERS, // Use collected state
+                        isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.FLOWERS,
                         onClick = { settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.FLOWERS)) }
                     )
                     BackgroundImageOption(
                         imageResId = R.drawable.bg_rainbow, name = stringResource(id = R.string.rainbow), choice = BackgroundChoice.RAINBOW,
-                        isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.RAINBOW, // Use collected state
+                        isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.RAINBOW,
                         onClick = { settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.RAINBOW)) }
                     )
                 }
-                // Third row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -167,21 +236,20 @@ fun SettingsScreen(
                 ) {
                     BackgroundImageOption(
                         imageResId = R.drawable.bg_shooting_star, name = stringResource(id = R.string.stars), choice = BackgroundChoice.SHOOTING_STAR,
-                        isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.SHOOTING_STAR, // Use collected state
+                        isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.SHOOTING_STAR,
                         onClick = { settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.SHOOTING_STAR)) }
                     )
                     BackgroundImageOption(
                         imageResId = R.drawable.bg_skeleton_head, name = stringResource(id = R.string.skull), choice = BackgroundChoice.SKELETON_HEAD,
-                        isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.SKELETON_HEAD, // Use collected state
+                        isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.SKELETON_HEAD,
                         onClick = { settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.SKELETON_HEAD)) }
                     )
-                    Spacer(modifier = Modifier.width(70.dp)) // Balance layout
+                    Spacer(modifier = Modifier.width(70.dp)) // Consider making this more robust if needed
                 }
-                // --- End Background Image Rows ---
 
                 Divider(modifier = Modifier.padding(vertical = 8.dp))
 
-                // Dark mode toggle (Use collected state)
+                // --- Dark mode toggle (Keep as is) ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -194,15 +262,14 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.titleMedium
                     )
                     Switch(
-                        checked = currentThemeSettings.darkModeEnabled, // Use collected state
+                        checked = currentThemeSettings.darkModeEnabled,
                         onCheckedChange = { isChecked ->
-                            // Update based on the *current* collected state
                             settingsViewModel.updateThemeSettings(currentThemeSettings.copy(darkModeEnabled = isChecked))
                         }
                     )
                 }
 
-                // Notifications toggle (Uses local state - no change needed here for theme updates)
+                // --- UPDATED Notifications toggle ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -216,11 +283,43 @@ fun SettingsScreen(
                     )
                     Switch(
                         checked = notificationsEnabled.value,
-                        onCheckedChange = { notificationsEnabled.value = it }
+                        onCheckedChange = { shouldBeEnabled ->
+                            if (shouldBeEnabled) {
+                                // --- Turning ON ---
+                                if (notificationPermission.isNotEmpty()) { // Check needed only on Android 13+
+                                    // Check current permission status
+                                    when (ContextCompat.checkSelfPermission(context, notificationPermission)) {
+                                        PackageManager.PERMISSION_GRANTED -> {
+                                            // Already granted: Update state
+                                            Log.d("SettingsScreen", "Notification toggle ON: Permission already granted.")
+                                            notificationsEnabled.value = true
+                                            // TODO: Persist via ViewModel: settingsViewModel.updateNotificationPreference(true)
+                                        }
+                                        else -> {
+                                            // Not granted: Launch permission request
+                                            Log.d("SettingsScreen", "Notification toggle ON: Permission needed, launching request.")
+                                            notificationPermissionLauncher.launch(notificationPermission)
+                                            // State (notificationsEnabled.value) will be updated in the launcher's callback if granted
+                                        }
+                                    }
+                                } else {
+                                    // Pre-Android 13: No runtime permission needed, just enable
+                                    Log.d("SettingsScreen", "Notification toggle ON: Pre-Android 13, enabling directly.")
+                                    notificationsEnabled.value = true
+                                    // TODO: Persist via ViewModel: settingsViewModel.updateNotificationPreference(true)
+                                }
+                            } else {
+                                // --- Turning OFF ---
+                                Log.d("SettingsScreen", "Notification toggle OFF.")
+                                notificationsEnabled.value = false
+                                // TODO: Persist via ViewModel: settingsViewModel.updateNotificationPreference(false)
+                            }
+                        }
                     )
                 }
+                // --- END UPDATED Notifications toggle ---
 
-                // Language selection (Uses local state - no change needed here for theme updates)
+                // --- Language selection BLOCK (Keep as is) ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -229,59 +328,33 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        stringResource(id = R.string.language),
+                        text = stringResource(id = R.string.language).also {
+                            Log.d("SettingsScreen", "Looked up R.string.language: '$it'")
+                        },
                         style = MaterialTheme.typography.titleMedium
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        // English Option Column... (using local `language` state)
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.clickable { language.value = "English" }.padding(horizontal = 8.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier.size(40.dp).clip(CircleShape)
-                                    .border(
-                                        width = if (language.value == "English") 2.dp else 1.dp,
-                                        color = if (language.value == "English") MaterialTheme.colorScheme.primary else Color.Gray,
-                                        shape = CircleShape
-                                    )
-                                    .background(if (language.value == "English") MaterialTheme.colorScheme.primaryContainer else Color.Transparent),
-                                contentAlignment = Alignment.Center
-                            ) { Text("EN") }
-                            Text(
-                                text = stringResource(id = R.string.english), modifier = Modifier.padding(top = 4.dp),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (language.value == "English") MaterialTheme.colorScheme.primary else Color.Gray
-                            )
-                        }
+                        LanguageOption(
+                            languageCode = LANG_EN,
+                            languageNameResId = R.string.english,
+                            isSelected = currentLanguage == LANG_EN,
+                            onClick = { settingsViewModel.updateLanguage(LANG_EN) }
+                        )
                         Spacer(modifier = Modifier.width(16.dp))
-                        // Estonian Option Column... (using local `language` state)
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.clickable { language.value = "Estonian" }.padding(horizontal = 8.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier.size(40.dp).clip(CircleShape)
-                                    .border(
-                                        width = if (language.value == "Estonian") 2.dp else 1.dp,
-                                        color = if (language.value == "Estonian") MaterialTheme.colorScheme.primary else Color.Gray,
-                                        shape = CircleShape
-                                    )
-                                    .background(if (language.value == "Estonian") MaterialTheme.colorScheme.primaryContainer else Color.Transparent),
-                                contentAlignment = Alignment.Center
-                            ) { Text("ET") }
-                            Text(
-                                text = stringResource(id = R.string.estonian), modifier = Modifier.padding(top = 4.dp),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (language.value == "Estonian") MaterialTheme.colorScheme.primary else Color.Gray
-                            )
-                        }
+                        LanguageOption(
+                            languageCode = LANG_ET,
+                            languageNameResId = R.string.estonian,
+                            isSelected = currentLanguage == LANG_ET,
+                            onClick = { settingsViewModel.updateLanguage(LANG_ET) }
+                        )
                     }
                 }
+                // --- END of Language selection BLOCK ---
 
-                Spacer(modifier = Modifier.height(24.dp)) // Space before version
 
-                // Version Text
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // --- Version Text (Keep as is) ---
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -289,7 +362,7 @@ fun SettingsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "Version 1.0",
+                        "Version 1.0", // Consider making this a string resource if needed
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
@@ -300,8 +373,47 @@ fun SettingsScreen(
     } // End Surface
 }
 
-// --- DefaultBackgroundOption and BackgroundImageOption composables remain unchanged ---
-// (They receive `isSelected` as a parameter, which is now derived from the collected state)
+// --- LanguageOption Composable (Keep as is) ---
+@Composable
+private fun LanguageOption(
+    languageCode: String,
+    @StringRes languageNameResId: Int,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val displayCode = languageCode.uppercase()
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .border(
+                    width = if (isSelected) 2.dp else 1.dp,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray,
+                    shape = CircleShape
+                )
+                .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(displayCode, fontWeight = FontWeight.Bold)
+        }
+        Text(
+            text = stringResource(id = languageNameResId),
+            modifier = Modifier.padding(top = 4.dp),
+            style = MaterialTheme.typography.bodySmall,
+            color = if (isSelected) MaterialTheme.colorScheme.primary else LocalContentColor.current.copy(alpha = 0.8f)
+        )
+    }
+}
+
+
+// --- DefaultBackgroundOption Composable (Keep as is) ---
 @Composable
 fun DefaultBackgroundOption(
     name: String,
@@ -321,18 +433,18 @@ fun DefaultBackgroundOption(
                     color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray,
                     shape = RoundedCornerShape(8.dp)
                 )
-                .background(Color.White), // Default background is White
+                .background(Color.White), // Explicitly White for default
             contentAlignment = Alignment.Center
         ) {
             if (isSelected) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)) // Subtle overlay
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)) // Selection overlay
                 )
                 Icon(
                     imageVector = Icons.Default.Check,
-                    contentDescription = stringResource(R.string.selected), // Use string resource
+                    contentDescription = stringResource(R.string.selected), // Accessibility
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(30.dp)
                 )
@@ -342,14 +454,15 @@ fun DefaultBackgroundOption(
             text = name,
             modifier = Modifier.padding(top = 4.dp),
             style = MaterialTheme.typography.bodySmall,
-            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray
+            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray // Match selection state
         )
     }
 }
 
+// --- BackgroundImageOption Composable (Keep as is) ---
 @Composable
 fun BackgroundImageOption(
-    imageResId: Int,
+    @DrawableRes imageResId: Int,
     name: String,
     choice: BackgroundChoice,
     isSelected: Boolean,
@@ -372,20 +485,20 @@ fun BackgroundImageOption(
         ) {
             Image(
                 painter = painterResource(id = imageResId),
-                contentDescription = name, // Use name for content desc of the image itself
+                contentDescription = name, // Use name for accessibility
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
             if (isSelected) {
-                Box( // Overlay for checkmark visibility
+                Box( // Selection overlay
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.3f))
+                        .background(Color.Black.copy(alpha = 0.3f)) // Semi-transparent overlay
                 )
                 Icon(
                     imageVector = Icons.Default.Check,
-                    contentDescription = stringResource(R.string.selected), // Use string resource
-                    tint = Color.White, // White checkmark stands out
+                    contentDescription = stringResource(R.string.selected), // Accessibility
+                    tint = Color.White, // Checkmark visible on images
                     modifier = Modifier.size(30.dp)
                 )
             }
@@ -394,34 +507,46 @@ fun BackgroundImageOption(
             text = name,
             modifier = Modifier.padding(top = 4.dp),
             style = MaterialTheme.typography.bodySmall,
-            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray
+            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray // Match selection state
         )
     }
 }
 
 
-// --- Preview (Adjusted for global state dependency) ---
-@Preview(showBackground = true, name = "Settings Preview")
+// --- Preview (Keep as is - doesn't interact with permissions) ---
+@Preview(showBackground = true, name = "Settings Preview Light")
+@Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES, name = "Settings Preview Dark")
 @Composable
-fun SettingsScreenPreview() {
-    // Previewing components that rely on global StateFlow can be tricky.
-    // This basic preview might not reflect runtime behavior perfectly.
-    // Using LaunchedEffect to set an initial state for the preview run.
-    LaunchedEffect(Unit) {
-        AppThemeSettings.updateThemeSettings(ThemeSettings(backgroundChoice = BackgroundChoice.BUTTERFLY)) // Example initial state for preview
+private fun SettingsScreenPreview() {
+    // ... (Fake state holder and ViewModel setup remains the same)
+    class FakeSettingsStateHolder {
+        private val _themeSettings = MutableStateFlow(ThemeSettings(darkModeEnabled = false, backgroundChoice = BackgroundChoice.BUTTERFLY))
+        val themeSettings: StateFlow<ThemeSettings> = _themeSettings
+        private val _currentLanguagePreference = MutableStateFlow(LANG_EN)
+        val currentLanguagePreference: StateFlow<String> = _currentLanguagePreference
+        fun updateThemeSettings(newSettings: ThemeSettings) {
+            _themeSettings.value = newSettings
+            AppThemeSettings.updateThemeSettings(newSettings)
+        }
+        fun updateLanguage(languageCode: String) { _currentLanguagePreference.value = languageCode }
+    }
+    val fakeState = remember { FakeSettingsStateHolder() }
+    val context = LocalContext.current
+    val previewViewModel = remember {
+        object : SettingsViewModel(context.applicationContext as Application) {
+            override val currentLanguagePreference: StateFlow<String> get() = fakeState.currentLanguagePreference
+            override fun updateThemeSettings(newSettings: ThemeSettings) { fakeState.updateThemeSettings(newSettings) }
+            override fun updateLanguage(languageCode: String) { fakeState.updateLanguage(languageCode) }
+        }
     }
     val currentSettings by AppThemeSettings.themeSettings.collectAsState()
-    val dummyViewModel: SettingsViewModel = viewModel() // Use viewModel() or a mock/fake
 
-    // It's good practice to wrap previews in your app's theme if applicable
-    // YourAppTheme(darkTheme = currentSettings.darkModeEnabled) {
-    SettingsScreen(
-        onNavigateBack = {},
-        themeSettings = currentSettings, // Pass the collected state
-        settingsViewModel = dummyViewModel
-    )
-    // }
-
-    // Optional: Reset state after preview if needed (less common for previews)
-    // DisposableEffect(Unit) { onDispose { AppThemeSettings.updateThemeSettings(ThemeSettings()) } }
+    MaterialTheme(
+        colorScheme = if (currentSettings.darkModeEnabled) darkColorScheme() else lightColorScheme()
+    ) {
+        SettingsScreen(
+            onNavigateBack = {},
+            settingsViewModel = previewViewModel
+        )
+    }
 }

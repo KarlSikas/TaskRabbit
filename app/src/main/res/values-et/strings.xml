@@ -18,7 +18,7 @@
     <string name="english">Inglise</string>
     <string name="estonian">Eesti</string>
     <string name="dark_mode">Tume režiim</string>
-    <string name="selected">Valitud</string> <!-- Added -->
+    <string name="selected">Valitud</string>
 
     <!-- Background Selector Screen -->
     <string name="select_background">Vali Taust</string>
@@ -36,6 +36,8 @@
     <string name="save">Salvesta</string>
     <string name="delete">Kustuta</string>
     <string name="confirm">Kinnita</string>
+    <string name="edit">Muuda</string>
+    <string name="clear">Tühjenda</string>
 
     <!-- Task List Screen -->
     <string name="my_tasks">Minu Ülesanded</string>
@@ -54,6 +56,9 @@
     <string name="add_task_for_date">Lisa ülesanne kuupäevale %1$s...</string>
     <string name="tasks_for_date">Ülesanded kuupäevale %1$s</string>
     <string name="no_tasks_for_date">Sellel kuupäeval ülesandeid pole</string>
+    <string name="task_title_hint">Ülesande pealkiri...</string>
+    <string name="set_reminder_or_time">Määra meeldetuletus või aeg</string>
+
 
     <!-- Task Details -->
     <string name="task_details">Ülesande Üksikasjad</string>
@@ -64,6 +69,9 @@
     <string name="priority">Prioriteet</string>
     <string name="reminder">Meeldetuletus</string>
     <string name="completed">Tehtud</string>
+    <string name="set_reminder">Määra meeldetuletus</string>
+    <string name="set_time_first_message">Määra esmalt aeg</string>
+
 
     <!-- Calendar Screen -->
     <string name="calendar">Kalender</string>
@@ -74,11 +82,13 @@
     <string name="week_view">Nädalavaade</string>
     <string name="month_view">Kuuvaade</string>
     <string name="add_to_calendar">Lisa Kalendrisse</string>
+    <string name="background_image_desc">Taustapilt</string>
 
     <!-- Notifications -->
     <string name="notification_channel_name">Ülesande Meeldetuletused</string>
     <string name="notification_channel_description">Meeldetuletused sinu tulevatele ülesannetele</string>
     <string name="task_reminder">Ülesande Meeldetuletus</string>
+    <string name="default_task_title">Ülesande Meeldetuletus</string> <!-- <<< ADDED THIS LINE >>> -->
     <string name="task_due_soon">Ülesande tähtaeg läheneb</string>
     <string name="reminder_set">Meeldetuletus seatud</string>
     <string name="reminder_removed">Meeldetuletus eemaldatud</string>
@@ -117,4 +127,22 @@
     <string name="accessibility_voice_input">Häälesisestuse nupp</string>
     <string name="accessibility_priority_star">Prioriteedi täht</string>
     <string name="accessibility_completed_checkbox">Tehtud märkeruut</string>
+
+    <!-- Reminder Dialog Options (Optional - uncomment and adjust as needed, using resources is better for translation) -->
+    <!--
+    <string name="reminder_option_none">Puudub</string>
+    <string name="reminder_option_5_min">5 minutit enne</string>
+    <string name="reminder_option_15_min">15 minutit enne</string>
+    <string name="reminder_option_30_min">30 minutit enne</string>
+    <string name="reminder_option_1_hour">1 tund enne</string>
+    <string name="reminder_option_2_hours">2 tundi enne</string>
+    <string name="reminder_option_4_hours">4 tundi enne</string>
+    <string name="reminder_option_12_hours">12 tundi enne</string>
+    <string name="reminder_option_1_day">1 päev enne</string>
+    <string name="reminder_option_2_days">2 päeva enne</string>
+    <string name="reminder_option_3_days">3 päeva enne</string>
+    <string name="reminder_option_5_days">5 päeva enne</string>
+    <string name="reminder_option_1_week">1 nädal enne</string>
+    -->
+
 </resources>
