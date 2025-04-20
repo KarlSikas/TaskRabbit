@@ -2,21 +2,21 @@ package com.example.taskrabbit.ui.screens
 
 import android.Manifest
 import android.app.Application
-import android.app.Activity // Import Activity
+import android.app.Activity
 import android.content.Intent
 import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image // Import Image
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue // Import collectAsState extension
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,7 +31,7 @@ import com.example.taskrabbit.viewmodel.TaskViewModel
 import org.threeten.bp.LocalDate
 import org.threeten.bp.format.DateTimeFormatter
 import java.util.*
-import com.example.taskrabbit.ui.theme.AppThemeSettings // Import AppThemeSettings
+import com.example.taskrabbit.ui.theme.AppThemeSettings
 import androidx.compose.ui.graphics.painter.Painter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,11 +51,10 @@ fun TaskListScreen(
     var currentViewDate by remember { mutableStateOf(LocalDate.now()) }
     val tasksForDate by viewModel.tasksForSelectedDate.collectAsState()
 
-    // --- FIX 1: Restore Speech Recognition Launcher ---
+    // Speech Recognition Launcher
     val speechRecognitionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult() // Specify the contract
+        contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        // Specify the result handling logic
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.let { results ->
                 if (results.isNotEmpty()) {
@@ -66,32 +65,28 @@ fun TaskListScreen(
         isListeningForSpeech = false
     }
 
-    // --- FIX 2: Restore Permission Launcher ---
+    // Permission Launcher
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission() // Specify the contract
+        contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        // Specify the result handling logic
         if (isGranted) {
             try {
                 val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
-                    putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak now...") // Optional prompt
+                    putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak now...")
                 }
                 speechRecognitionLauncher.launch(intent)
                 isListeningForSpeech = true
             } catch (e: Exception) {
-                // Handle exception (e.g., no speech recognition support)
                 isListeningForSpeech = false
             }
         } else {
-            // Handle permission denial (e.g., show a message)
             isListeningForSpeech = false
         }
     }
-    // --- End FIX 1 & 2 ---
 
-    Box(
+    Box( // Root Box for background
         modifier = Modifier
             .fillMaxSize()
             .background(if (backgroundPainter == null) backgroundColor else Color.Transparent)
@@ -119,11 +114,67 @@ fun TaskListScreen(
                             Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings))
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    // Make TopAppBar transparent too if desired
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface, // Adjust if needed for contrast
+                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                        actionIconContentColor = MaterialTheme.colorScheme.onSurface
+                    )
                 )
             },
-            bottomBar = {
-                TaskInputBar(
+            // --- REMOVE bottomBar parameter ---
+            // bottomBar = { ... }
+            containerColor = Color.Transparent // Make Scaffold background transparent
+        ) { paddingValues ->
+
+            // --- Use a Box to layer the list and the floating input bar ---
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues) // Apply padding from Scaffold (for status bar etc.)
+            ) {
+                // --- Task List Column ---
+                // Needs bottom padding so the last item isn't hidden by the input bar
+                val inputBarHeightEstimate = 80.dp // Adjust as needed
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    // Add enough padding at the bottom to clear the floating input bar
+                    contentPadding = PaddingValues(bottom = inputBarHeightEstimate + 16.dp)
+                ) {
+                    if (tasksForDate.isEmpty()) {
+                        item { // Use item for single elements in LazyColumn
+                            Box(
+                                modifier = Modifier
+                                    .fillParentMaxSize() // Fill the parent LazyColumn area
+                                    .padding(bottom = inputBarHeightEstimate + 16.dp), // Center respecting bottom padding
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.no_tasks_for_date),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+                    } else {
+                        items(tasksForDate, key = { task -> task.id }) { task ->
+                            TaskItemCard(
+                                task = task,
+                                onDelete = { taskId -> viewModel.deleteTask(taskId) }
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                    }
+                } // End LazyColumn
+
+                // --- Floating Input Bar ---
+                FloatingTaskInputBar(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter) // Align to bottom of the Box
+                        .padding(bottom = 16.dp, start = 16.dp, end = 16.dp), // Padding to lift it off the edge and for horizontal margins
                     newTaskText = newTaskText,
                     isListeningForSpeech = isListeningForSpeech,
                     onTextChange = { newTaskText = it },
@@ -134,58 +185,33 @@ fun TaskListScreen(
                             newTaskText = ""
                         }
                     }
-                )
-            },
-            containerColor = Color.Transparent
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-                if (tasksForDate.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(stringResource(R.string.no_tasks_for_date))
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp)
-                    ) {
-                        items(tasksForDate, key = { task -> task.id }) { task ->
-                            TaskItemCard(
-                                task = task,
-                                onDelete = { taskId -> viewModel.deleteTask(taskId) }
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-                    }
-                }
-            }
-        } // End Scaffold
+                ) // End FloatingTaskInputBar call
+
+            } // End Box
+        } // End Scaffold content lambda
     } // End Root Box
 }
 
+// --- NEW: Extracted Floating Input Bar Composable ---
 @Composable
-private fun TaskInputBar(
+private fun FloatingTaskInputBar(
+    modifier: Modifier = Modifier, // Pass modifier for alignment and padding
     newTaskText: String,
     isListeningForSpeech: Boolean,
     onTextChange: (String) -> Unit,
     onMicClick: () -> Unit,
     onAddTask: () -> Unit
 ) {
-    BottomAppBar(
-        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-        tonalElevation = 4.dp
+    Surface( // Use Surface for elevation, shape, and background
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(percent = 50), // Pill shape
+        // --- Make it more transparent ---
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+        tonalElevation = 6.dp // Add some elevation
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 8.dp, vertical = 8.dp), // Internal padding within the Surface
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedTextField(
@@ -193,14 +219,22 @@ private fun TaskInputBar(
                 onValueChange = onTextChange,
                 placeholder = { Text(stringResource(R.string.add_task_hint)) },
                 modifier = Modifier.weight(1f),
-                singleLine = true
-                // --- FIX 3: Remove problematic colors parameter ---
-                // colors = TextFieldDefaults.outlinedTextFieldColors(
-                //     // Customize based on theme/contrast needs
-                // )
-                // --- End FIX 3 ---
+                shape = RoundedCornerShape(percent = 50), // Keep text field rounded too
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    // --- Make TextField background transparent to see Surface color ---
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedBorderColor = Color.Transparent, // Hide border or use a subtle color
+                    unfocusedBorderColor = Color.Transparent,
+                    // Adjust text/placeholder color for contrast on the semi-transparent background
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                    focusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                )
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            // Mic Button
             IconButton(onClick = onMicClick) {
                 Icon(
                     imageVector = Icons.Default.Mic,
@@ -208,16 +242,19 @@ private fun TaskInputBar(
                     tint = if (isListeningForSpeech) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                 )
             }
+            // Add Task Button
             IconButton(onClick = onAddTask, enabled = newTaskText.isNotBlank()) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = stringResource(R.string.add_task),
-                    tint = if (newTaskText.isNotBlank()) MaterialTheme.colorScheme.primary else Color.Gray
+                    tint = if (newTaskText.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                 )
             }
         }
     }
 }
+// --- End Floating Input Bar ---
+
 
 @Composable
 fun TaskItemCard(
@@ -230,21 +267,23 @@ fun TaskItemCard(
             .padding(vertical = 4.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
         )
     ) {
         Row(
             modifier = Modifier
-                .padding(16.dp),
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
                 text = task.title,
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f).padding(end = 8.dp)
             )
-            IconButton(onClick = { onDelete(task.id) }) {
+            IconButton(onClick = { onDelete(task.id) }, modifier = Modifier.size(40.dp)) {
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = stringResource(R.string.delete_task),

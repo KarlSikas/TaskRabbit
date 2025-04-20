@@ -17,6 +17,7 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
     }
+    // NO versionCatalogs block here
 }
 
 rootProject.name = "TaskRabbit"

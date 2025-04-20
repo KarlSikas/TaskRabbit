@@ -1,24 +1,26 @@
+// app/build.gradle.kts - NO libs aliases
+
+// Apply plugins by ID only. Versions come from project-level build file.
 plugins {
-    alias(libs.plugins.ksp)
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.devtools.ksp")
 }
 
 android {
     namespace = "com.example.taskrabbit"
-    compileSdk = 35
+    // Use a stable SDK, 34 is generally recommended if targeting 26.
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.example.taskrabbit"
-        minSdk = 23
-        targetSdk = 35
+        minSdk = 26 // <<< Set to 26 as requested
+        targetSdk = 26 // <<< Set to 26 as requested
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        // Adding the build timestamp as a BuildConfig field
         buildConfigField("String", "BUILD_TIMESTAMP", "\"${System.currentTimeMillis()}\"")
     }
 
@@ -43,77 +45,92 @@ android {
 
     buildFeatures {
         compose = true
-        buildConfig = true // Ensure this is enabled to generate BuildConfig
+        buildConfig = true
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.6.0"  // Update to the latest stable version
-    }
-
-    dependencies {
-        // Compose BOM (platform to share versions)
-        implementation(platform(libs.androidx.compose.bom))
-
-        // Compose dependencies
-        implementation(libs.androidx.compose.ui)
-        implementation(libs.androidx.compose.ui.graphics)
-        implementation(libs.androidx.compose.ui.tooling.preview)
-        implementation(libs.androidx.compose.material3)
-
-        // Lifecycle & activity
-        implementation(libs.androidx.lifecycle.runtime.ktx)
-        implementation(libs.androidx.activity.compose)
-
-        // LiveData & ViewModel for Jetpack Compose
-        implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.4.0")  // ViewModel with Compose support
-        implementation("androidx.compose.runtime:runtime-livedata:1.0.0")  // For observeAsState
-
-        // Core
-        implementation(libs.androidx.core.ktx)
-
-        // Coil
-        implementation("io.coil-kt:coil-compose:2.6.0")
-
-        // Room
-        implementation("androidx.room:room-runtime:2.6.1")
-        implementation("androidx.room:room-ktx:2.6.1")
-        ksp("androidx.room:room-compiler:2.6.1")
-        androidTestImplementation("androidx.room:room-testing:2.6.1")
-
-        // Coroutines
-        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
-        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
-
-        // Date/time library
-        implementation("com.jakewharton.threetenabp:threetenabp:1.4.6")
-
-        // Compose Testing
-        androidTestImplementation(platform(libs.androidx.compose.bom))
-        androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-        debugImplementation(libs.androidx.compose.ui.tooling)
-        debugImplementation(libs.androidx.compose.ui.test.manifest)
-
-        // Unit tests
-        testImplementation(libs.junit)
-        androidTestImplementation(libs.androidx.junit)
-        androidTestImplementation(libs.androidx.espresso.core)
-
-        // Material Icons (consider updating to stable version if possible)
-        implementation("androidx.compose.material:material-icons-extended:1.7.0")
-
-        // Navigation
-        implementation("androidx.navigation:navigation-compose:2.7.7")
-
-        implementation("io.coil-kt:coil-compose:2.1.0")
-
-        implementation("androidx.datastore:datastore-preferences:1.0.0")
-        implementation("androidx.datastore:datastore-preferences-core:1.0.0")
-
-        implementation("com.jakewharton.threetenabp:threetenabp:1.4.0")
-
-        implementation("androidx.compose.material3:material3:1.2.0")
+        // CRITICAL: Verify this version based on Kotlin 2.0.21 and your Compose library versions.
+        // Check compatibility: https://developer.android.com/jetpack/androidx/releases/compose-kotlin
+        // '1.5.21' is likely correct.
+        kotlinCompilerExtensionVersion = "1.5.21"
     }
 }
+
+// Main dependencies block - uses explicit coordinates (group:name:version)
 dependencies {
-    implementation(libs.androidx.core.splashscreen)
+    // Define versions explicitly (use values from your original libs.versions.toml)
+    val composeBomVersion = "2024.09.00"
+    val coreKtxVersion = "1.16.0"
+    val lifecycleVersion = "2.8.7"
+    val activityComposeVersion = "1.10.1"
+    val roomVersion = "2.6.1"
+    val coroutinesVersion = "1.8.0"
+    val threetenabpVersion = "1.4.6"
+    val junitVersion = "4.13.2"
+    val androidxJunitVersion = "1.2.1"
+    val espressoCoreVersion = "3.6.1"
+    val navigationVersion = "2.7.7"
+    val coilVersion = "2.6.0"
+    val datastoreVersion = "1.0.0"
+    val splashscreenVersion = "1.0.1"
+    val materialIconsVersion = "1.7.0-beta01" // Or a stable version compatible
+
+    // Compose BOM (platform to share versions)
+    implementation(platform("androidx.compose:compose-bom:$composeBomVersion"))
+
+    // Compose dependencies (versions managed by BOM)
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3") // Version from BOM
+
+    // Lifecycle & activity
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:$lifecycleVersion")
+    implementation("androidx.activity:activity-compose:$activityComposeVersion")
+
+    // LiveData & ViewModel for Jetpack Compose
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycleVersion")
+    implementation("androidx.compose.runtime:runtime-livedata") // Version from BOM
+
+    // Core
+    implementation("androidx.core:core-ktx:$coreKtxVersion")
+
+    // Coil
+    implementation("io.coil-kt:coil-compose:$coilVersion")
+
+    // Room
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
+    ksp("androidx.room:room-compiler:$roomVersion")
+    androidTestImplementation("androidx.room:room-testing:$roomVersion")
+
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion")
+
+    // Date/time library
+    implementation("com.jakewharton.threetenabp:threetenabp:$threetenabpVersion")
+
+    // Compose Testing (versions managed by BOM)
+    androidTestImplementation(platform("androidx.compose:compose-bom:$composeBomVersion"))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4") // Version from BOM
+    debugImplementation("androidx.compose.ui:ui-tooling") // Version from BOM
+    debugImplementation("androidx.compose.ui:ui-test-manifest") // Version from BOM
+
+    // Unit tests
+    testImplementation("junit:junit:$junitVersion")
+    androidTestImplementation("androidx.test.ext:junit:$androidxJunitVersion")
+    androidTestImplementation("androidx.test.espresso:espresso-core:$espressoCoreVersion")
+
+    // Material Icons
+    implementation("androidx.compose.material:material-icons-extended:$materialIconsVersion")
+
+    // Navigation
+    implementation("androidx.navigation:navigation-compose:$navigationVersion")
+
+    // DataStore
+    implementation("androidx.datastore:datastore-preferences:$datastoreVersion")
+
+    // SplashScreen
+    implementation("androidx.core:core-splashscreen:$splashscreenVersion")
 }
