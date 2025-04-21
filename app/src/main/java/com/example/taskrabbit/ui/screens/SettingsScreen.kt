@@ -1,8 +1,8 @@
 package com.example.taskrabbit.ui.screens
 
-import android.Manifest // <<< Import Manifest
+import android.Manifest
 import android.annotation.SuppressLint
-import androidx.annotation.StringRes // Added for LanguageOption
+import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,11 +13,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack // Corrected import
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue // Keep this import
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,44 +33,32 @@ import com.example.taskrabbit.ui.theme.BackgroundChoice
 import com.example.taskrabbit.viewmodel.SettingsViewModel
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.taskrabbit.ui.theme.AppThemeSettings
-import android.app.Application // Added for Preview
-import androidx.annotation.DrawableRes // Added for BackgroundImageOption
-import androidx.compose.material3.darkColorScheme // Added for Preview
-import androidx.compose.material3.lightColorScheme // Added for Preview
-import kotlinx.coroutines.flow.MutableStateFlow // Added for Preview
-import kotlinx.coroutines.flow.StateFlow // Added for Preview
+import android.app.Application
+import androidx.annotation.DrawableRes
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import android.util.Log
-import androidx.compose.ui.platform.LocalConfiguration
-import com.example.taskrabbit.ui.theme.ThemeSettings // Keep for Preview state holder
-
-// --- ADD Permission Handling Imports ---
+import com.example.taskrabbit.ui.theme.ThemeSettings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import android.content.pm.PackageManager
 import android.os.Build
-// --- END Permission Handling Imports ---
-
-// --- ADDED Imports for Restart Logic ---
 import android.content.Context
 import android.content.Intent
 import com.example.taskrabbit.MainActivity
-// --- END ADDED Imports ---
-
-// --- ADDED Coroutine Scope Import ---
 import kotlinx.coroutines.launch
-// --- END ---
+import androidx.compose.animation.AnimatedVisibility // Added for conditional text
 
-
-// Define language codes as constants
 private const val LANG_EN = "en"
 private const val LANG_ET = "et"
 
-// Define permission constant (needed for Android 13+)
 private val notificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
     Manifest.permission.POST_NOTIFICATIONS
 } else {
-    "" // Indicate no specific permission needed for older versions
+    ""
 }
 
 @SuppressLint("SimpleDateFormat")
@@ -81,46 +68,28 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit,
     settingsViewModel: SettingsViewModel
 ) {
-    Log.d("SettingsScreen", "SettingsScreen composable CALLED")
-
-    val configuration = LocalConfiguration.current
-    LaunchedEffect(configuration) { /* ... Locale Logging ... */ }
-
-    // Collect theme state from global settings
     val currentThemeSettings by AppThemeSettings.themeSettings.collectAsState()
-
-    // Collect language state from the ViewModel
     val currentLanguage by settingsViewModel.currentLanguagePreference.collectAsState()
 
     val scrollState = rememberScrollState()
-    val context = LocalContext.current // Needed for restarting and other context uses
-
-    // --- Coroutine Scope for suspend functions ---
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    // --- END ---
 
-    // --- State for Notifications Toggle ---
     val notificationsEnabled = remember { mutableStateOf(false) }
-    // --- END State ---
 
-    // --- Permission Launcher for Notifications ---
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
+        notificationsEnabled.value = isGranted
         if (isGranted) {
-            notificationsEnabled.value = true
             Log.d("SettingsScreen", "Notification permission GRANTED.")
-            // TODO: Persist this preference via ViewModel if needed
+            // Persist preference if needed: settingsViewModel.updateNotificationPreference(true)
         } else {
-            notificationsEnabled.value = false
             Log.w("SettingsScreen", "Notification permission DENIED.")
-            // TODO: Show rationale or guide user to settings if needed
-            // TODO: Persist this preference via ViewModel if needed
+            // Persist preference if needed: settingsViewModel.updateNotificationPreference(false)
         }
     }
-    // --- END Permission Launcher ---
 
-    // --- Effect to Check Initial Notification Permission Status ---
     LaunchedEffect(key1 = context) {
         if (notificationPermission.isNotEmpty()) {
             val isGranted = ContextCompat.checkSelfPermission(
@@ -128,17 +97,16 @@ fun SettingsScreen(
                 notificationPermission
             ) == PackageManager.PERMISSION_GRANTED
             notificationsEnabled.value = isGranted
-            Log.d("SettingsScreen", "Initial notification permission check: isGranted=$isGranted")
         } else {
-            Log.d("SettingsScreen", "Skipping initial notification permission check (pre-Android 13). Loading preference instead.")
-            // TODO: Load preference from ViewModel if persisted
+            // Load preference from ViewModel if persisted
         }
     }
-    // --- END Initial Check Effect ---
-
 
     val backgroundPainter: Painter? = AppThemeSettings.getBackgroundImagePainter(currentThemeSettings, context)
     val backgroundColor = AppThemeSettings.getBackgroundColor(currentThemeSettings, context)
+
+    // --- Condition for enabling Dark Mode ---
+    val isDarkModeAllowed = currentThemeSettings.backgroundChoice == BackgroundChoice.WHITE
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -161,7 +129,6 @@ fun SettingsScreen(
                     .padding(16.dp)
                     .verticalScroll(scrollState)
             ) {
-                // --- Top bar (Keep as is) ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -169,13 +136,11 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back)) // Use AutoMirrored icon
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = stringResource(id = R.string.settings).also {
-                            Log.d("SettingsScreen", "Looked up R.string.settings: '$it'")
-                        },
+                        text = stringResource(id = R.string.settings),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -183,7 +148,6 @@ fun SettingsScreen(
 
                 Divider(modifier = Modifier.padding(vertical = 8.dp))
 
-                // --- Background image choices (Keep as is) ---
                 Text(
                     stringResource(id = R.string.background_images),
                     style = MaterialTheme.typography.titleLarge,
@@ -249,32 +213,49 @@ fun SettingsScreen(
                         isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.SKELETON_HEAD,
                         onClick = { settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.SKELETON_HEAD)) }
                     )
-                    Spacer(modifier = Modifier.width(70.dp)) // Consider making this more robust if needed
+                    Spacer(modifier = Modifier.width(70.dp))
                 }
 
                 Divider(modifier = Modifier.padding(vertical = 8.dp))
 
-                // --- Dark mode toggle (Keep as is) ---
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        stringResource(id = R.string.dark_mode),
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Switch(
-                        checked = currentThemeSettings.darkModeEnabled,
-                        onCheckedChange = { isChecked ->
-                            settingsViewModel.updateThemeSettings(currentThemeSettings.copy(darkModeEnabled = isChecked))
-                        }
-                    )
+                // --- Modified Dark mode toggle ---
+                Column { // Wrap in column to place text below
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp), // Reduced padding a bit
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            stringResource(id = R.string.dark_mode),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Switch(
+                            checked = currentThemeSettings.darkModeEnabled,
+                            enabled = isDarkModeAllowed, // Enable based on condition
+                            onCheckedChange = { isChecked ->
+                                // Only update if allowed (safeguard)
+                                if (isDarkModeAllowed) {
+                                    settingsViewModel.updateThemeSettings(currentThemeSettings.copy(darkModeEnabled = isChecked))
+                                }
+                            }
+                        )
+                    }
+                    // --- Explanatory text for disabled Dark Mode ---
+                    AnimatedVisibility(visible = !isDarkModeAllowed) {
+                        Text(
+                            text = stringResource(R.string.dark_mode_requires_default_background), // Use string resource
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 4.dp, top = 0.dp, bottom = 8.dp) // Adjust padding
+                        )
+                    }
                 }
+                // --- End Dark mode toggle ---
 
-                // --- Notifications toggle (Keep as is) ---
+
+                // --- Notifications toggle ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -290,36 +271,30 @@ fun SettingsScreen(
                         checked = notificationsEnabled.value,
                         onCheckedChange = { shouldBeEnabled ->
                             if (shouldBeEnabled) {
-                                // --- Turning ON ---
-                                if (notificationPermission.isNotEmpty()) { // Check needed only on Android 13+
+                                if (notificationPermission.isNotEmpty()) {
                                     when (ContextCompat.checkSelfPermission(context, notificationPermission)) {
                                         PackageManager.PERMISSION_GRANTED -> {
-                                            Log.d("SettingsScreen", "Notification toggle ON: Permission already granted.")
                                             notificationsEnabled.value = true
-                                            // TODO: Persist via ViewModel: settingsViewModel.updateNotificationPreference(true)
+                                            // Persist via ViewModel if needed
                                         }
                                         else -> {
-                                            Log.d("SettingsScreen", "Notification toggle ON: Permission needed, launching request.")
                                             notificationPermissionLauncher.launch(notificationPermission)
                                         }
                                     }
                                 } else {
-                                    Log.d("SettingsScreen", "Notification toggle ON: Pre-Android 13, enabling directly.")
                                     notificationsEnabled.value = true
-                                    // TODO: Persist via ViewModel: settingsViewModel.updateNotificationPreference(true)
+                                    // Persist via ViewModel if needed
                                 }
                             } else {
-                                // --- Turning OFF ---
-                                Log.d("SettingsScreen", "Notification toggle OFF.")
                                 notificationsEnabled.value = false
-                                // TODO: Persist via ViewModel: settingsViewModel.updateNotificationPreference(false)
+                                // Persist via ViewModel if needed
                             }
                         }
                     )
                 }
-                // --- END Notifications toggle ---
+                // --- End Notifications toggle ---
 
-                // --- *** MODIFIED Language selection BLOCK (Use Coroutine Scope) *** ---
+                // --- Language selection ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -328,9 +303,7 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = stringResource(id = R.string.language).also {
-                            Log.d("SettingsScreen", "Looked up R.string.language: '$it'")
-                        },
+                        text = stringResource(id = R.string.language),
                         style = MaterialTheme.typography.titleMedium
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -339,19 +312,11 @@ fun SettingsScreen(
                             languageNameResId = R.string.english,
                             isSelected = currentLanguage == LANG_EN,
                             onClick = {
-                                // Only act if the language is actually changing
                                 if (currentLanguage != LANG_EN) {
-                                    Log.d("SettingsScreen", "English selected. Launching coroutine to update and restart.")
-                                    // --- Use Coroutine Scope ---
                                     scope.launch {
-                                        // 1. Await ViewModel update (suspend function)
                                         settingsViewModel.updateLanguage(LANG_EN)
-                                        // 2. Trigger restart AFTER update completes
-                                        Log.d("SettingsScreen", "Language update complete, now restarting.")
-                                        restartApp(context) // <<< RESTART CALL MOVED INSIDE COROUTINE
+                                        restartApp(context)
                                     }
-                                } else {
-                                    Log.d("SettingsScreen", "English already selected. No action needed.")
                                 }
                             }
                         )
@@ -361,30 +326,20 @@ fun SettingsScreen(
                             languageNameResId = R.string.estonian,
                             isSelected = currentLanguage == LANG_ET,
                             onClick = {
-                                // Only act if the language is actually changing
                                 if (currentLanguage != LANG_ET) {
-                                    Log.d("SettingsScreen", "Estonian selected. Launching coroutine to update and restart.")
-                                    // --- Use Coroutine Scope ---
                                     scope.launch {
-                                        // 1. Await ViewModel update (suspend function)
                                         settingsViewModel.updateLanguage(LANG_ET)
-                                        // 2. Trigger restart AFTER update completes
-                                        Log.d("SettingsScreen", "Language update complete, now restarting.")
-                                        restartApp(context) // <<< RESTART CALL MOVED INSIDE COROUTINE
+                                        restartApp(context)
                                     }
-                                } else {
-                                    Log.d("SettingsScreen", "Estonian already selected. No action needed.")
                                 }
                             }
                         )
                     }
                 }
-                // --- *** END of MODIFIED Language selection BLOCK *** ---
-
+                // --- End Language selection ---
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // --- Version Text (Keep as is) ---
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -392,18 +347,17 @@ fun SettingsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "Version 1.0", // Consider making this a string resource if needed
+                        stringResource(R.string.app_version, "1.0"), // Use string resource with placeholder
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
                 }
 
-            } // End Content Column
-        } // End Box
-    } // End Surface
+            }
+        }
+    }
 }
 
-// --- Helper Function to Restart MainActivity (Unchanged) ---
 private fun restartApp(context: Context) {
     Log.i("SettingsScreen", "Restarting MainActivity to apply locale change.")
     val intent = Intent(context, MainActivity::class.java).apply {
@@ -414,10 +368,7 @@ private fun restartApp(context: Context) {
         context.finishAffinity()
     }
 }
-// --- END Helper Function ---
 
-
-// --- LanguageOption Composable (Unchanged) ---
 @Composable
 private fun LanguageOption(
     languageCode: String,
@@ -457,7 +408,6 @@ private fun LanguageOption(
 }
 
 
-// --- DefaultBackgroundOption Composable (Unchanged) ---
 @Composable
 fun DefaultBackgroundOption(
     name: String,
@@ -477,18 +427,18 @@ fun DefaultBackgroundOption(
                     color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray,
                     shape = RoundedCornerShape(8.dp)
                 )
-                .background(Color.White), // Explicitly White for default
+                .background(Color.White),
             contentAlignment = Alignment.Center
         ) {
             if (isSelected) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)) // Selection overlay
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
                 )
                 Icon(
                     imageVector = Icons.Default.Check,
-                    contentDescription = stringResource(R.string.selected), // Accessibility
+                    contentDescription = stringResource(R.string.selected),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(30.dp)
                 )
@@ -498,12 +448,11 @@ fun DefaultBackgroundOption(
             text = name,
             modifier = Modifier.padding(top = 4.dp),
             style = MaterialTheme.typography.bodySmall,
-            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray // Match selection state
+            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray
         )
     }
 }
 
-// --- BackgroundImageOption Composable (Unchanged) ---
 @Composable
 fun BackgroundImageOption(
     @DrawableRes imageResId: Int,
@@ -529,20 +478,20 @@ fun BackgroundImageOption(
         ) {
             Image(
                 painter = painterResource(id = imageResId),
-                contentDescription = name, // Use name for accessibility
+                contentDescription = name,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
             if (isSelected) {
-                Box( // Selection overlay
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.3f)) // Semi-transparent overlay
+                        .background(Color.Black.copy(alpha = 0.3f))
                 )
                 Icon(
                     imageVector = Icons.Default.Check,
-                    contentDescription = stringResource(R.string.selected), // Accessibility
-                    tint = Color.White, // Checkmark visible on images
+                    contentDescription = stringResource(R.string.selected),
+                    tint = Color.White,
                     modifier = Modifier.size(30.dp)
                 )
             }
@@ -551,18 +500,15 @@ fun BackgroundImageOption(
             text = name,
             modifier = Modifier.padding(top = 4.dp),
             style = MaterialTheme.typography.bodySmall,
-            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray // Match selection state
+            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray
         )
     }
 }
 
-
-// --- Preview (ViewModel interaction needs update for suspend fun) ---
 @Preview(showBackground = true, name = "Settings Preview Light")
 @Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES, name = "Settings Preview Dark")
 @Composable
 private fun SettingsScreenPreview() {
-    // Fake state holder and ViewModel setup
     class FakeSettingsStateHolder {
         private val _themeSettings = MutableStateFlow(ThemeSettings(darkModeEnabled = false, backgroundChoice = BackgroundChoice.BUTTERFLY))
         val themeSettings: StateFlow<ThemeSettings> = _themeSettings
@@ -572,7 +518,6 @@ private fun SettingsScreenPreview() {
             _themeSettings.value = newSettings
             AppThemeSettings.updateThemeSettings(newSettings)
         }
-        // Fake suspend fun
         suspend fun updateLanguage(languageCode: String) { _currentLanguagePreference.value = languageCode }
     }
     val fakeState = remember { FakeSettingsStateHolder() }
@@ -581,7 +526,6 @@ private fun SettingsScreenPreview() {
         object : SettingsViewModel(context.applicationContext as Application) {
             override val currentLanguagePreference: StateFlow<String> get() = fakeState.currentLanguagePreference
             override fun updateThemeSettings(newSettings: ThemeSettings) { fakeState.updateThemeSettings(newSettings) }
-            // Override the suspend function
             override suspend fun updateLanguage(languageCode: String) { fakeState.updateLanguage(languageCode) }
         }
     }

@@ -1,24 +1,21 @@
 package com.example.taskrabbit.ui.screens
 
-// <<< ADDED IMPORTS >>>
-import android.app.TimePickerDialog
-import android.content.Context
-import android.widget.Toast // <<< ADDED: Import Toast
-import org.threeten.bp.LocalTime
-import androidx.compose.ui.text.style.TextOverflow
-// <<< END ADDED IMPORTS >>>
-
 import android.Manifest
 import android.app.Activity
+import android.app.TimePickerDialog
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.speech.RecognizerIntent
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi // Needed for combinedClickable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable // Keep this, needed for card click
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable // Import for long press
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -44,6 +41,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -52,21 +50,22 @@ import com.example.taskrabbit.data.TaskItem
 import com.example.taskrabbit.ui.theme.AppThemeSettings
 import com.example.taskrabbit.viewmodel.TaskViewModel
 import org.threeten.bp.LocalDate
+import org.threeten.bp.LocalTime
 import org.threeten.bp.format.DateTimeFormatter
-import java.util.* // Keep for Calendar and Locale
+import java.util.*
 
-// --- Constants ---
 private val notificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
     Manifest.permission.POST_NOTIFICATIONS
 } else {
-    "" // No specific permission needed pre-Tiramisu for basic notifications
+    ""
 }
 private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy")
-private val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("h:mm a") // <<< New Time Formatter
+private val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("h:mm a")
 private val InputBarHeightEstimate: Dp = 72.dp
-// Reminder options moved outside the composable for performance
+
+// Reminder options (Labels should ideally use string resources)
 private val reminderDialogOptions = listOf(
-    null to "None", // Use stringResource(R.string.reminder_option_none) in UI
+    null to "None",
     5 to "5 minutes before",
     15 to "15 minutes before",
     30 to "30 minutes before",
@@ -80,45 +79,36 @@ private val reminderDialogOptions = listOf(
     7200 to "5 days before",
     10080 to "1 week before"
 )
-// --- End Constants ---
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskListScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToCalendar: () -> Unit,
+    onNavigateToTaskDetails: (taskId: Long) -> Unit, // Defined here
     viewModel: TaskViewModel
 ) {
     val context = LocalContext.current
-
-    // --- Theme State ---
     val currentThemeSettings by AppThemeSettings.themeSettings.collectAsState()
     val backgroundPainter: Painter? = AppThemeSettings.getBackgroundImagePainter(currentThemeSettings, context)
     val backgroundColor = AppThemeSettings.getBackgroundColor(currentThemeSettings, context)
-
-    // --- ViewModel State ---
     val selectedDate by viewModel.selectedDate.collectAsState()
     val tasksForDate by viewModel.tasksForSelectedDate.collectAsState()
 
-    // --- Local UI State ---
     var newTaskText by remember { mutableStateOf("") }
     var isListeningForSpeech by remember { mutableStateOf(false) }
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    // --- Reminder Dialog State ---
     var showReminderDialog by remember { mutableStateOf(false) }
     var taskToSetReminderFor by remember { mutableStateOf<TaskItem?>(null) }
-    var reminderDialogValue by remember { mutableStateOf<Int?>(null) } // For initial dialog value
+    var reminderDialogValue by remember { mutableStateOf<Int?>(null) }
 
-    // --- Time Picker State --- // <<< ADDED >>>
     var taskToSetTimeFor by remember { mutableStateOf<TaskItem?>(null) }
 
-    // --- Activity Result Launchers ---
     val speechRecognitionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        isListeningForSpeech = false // Always reset listening state
+        isListeningForSpeech = false
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()?.let { recognizedText ->
                 newTaskText = recognizedText
@@ -140,92 +130,72 @@ fun TaskListScreen(
                 isListeningForSpeech = true
             } catch (e: Exception) {
                 isListeningForSpeech = false
-                Log.e("TaskListScreen", "Speech recognition not available or failed to launch.", e)
-                // TODO: Show user feedback (e.g., Toast) that speech is unavailable
+                Log.e("TaskListScreen", "Speech recognition not available or failed.", e)
+                Toast.makeText(context, R.string.error_voice_recognition, Toast.LENGTH_SHORT).show()
             }
         } else {
             isListeningForSpeech = false
             Log.w("TaskListScreen", "RECORD_AUDIO permission denied.")
-            // TODO: Show rationale or message if permission permanently denied
+            Toast.makeText(context, R.string.permission_denied, Toast.LENGTH_SHORT).show()
         }
     }
-    // --- End Activity Result Launchers ---
 
-    // --- Helper Function to Show Time Picker --- // <<< ADDED >>>
     fun showTimePicker(task: TaskItem) {
         val calendar = Calendar.getInstance()
-        // Use task's time if available, otherwise current time
         val initialHour = task.taskTime?.hour ?: calendar.get(Calendar.HOUR_OF_DAY)
         val initialMinute = task.taskTime?.minute ?: calendar.get(Calendar.MINUTE)
 
         TimePickerDialog(
             context,
             { _, hourOfDay, minute ->
-                // User selected a time and clicked OK
                 val selectedTime = LocalTime.of(hourOfDay, minute)
                 viewModel.setTaskTime(task.id, selectedTime)
-                Log.d("TaskListScreen", "Time selected for task ID ${task.id}: $selectedTime")
-                taskToSetTimeFor = null // Reset state after selection
+                taskToSetTimeFor = null
             },
             initialHour,
             initialMinute,
-            false // Use 12-hour format (set to true for 24-hour)
+            false
         ).apply {
-            // Add a "Clear" button
             setButton(TimePickerDialog.BUTTON_NEGATIVE, context.getString(R.string.clear)) { _, _ ->
-                // User clicked Clear
-                viewModel.setTaskTime(task.id, null) // Set time to null
-                Log.d("TaskListScreen", "Time cleared for task ID ${task.id}")
-                taskToSetTimeFor = null // Reset state after clearing
+                viewModel.setTaskTime(task.id, null)
+                taskToSetTimeFor = null
             }
-            // Handle dismiss explicitly if needed (e.g., user taps outside)
             setOnDismissListener {
-                Log.d("TaskListScreen", "Time picker dismissed for task ID ${task.id}")
-                // Reset state if the dialog is dismissed without selection/clearing
-                if (taskToSetTimeFor == task) { // Avoid resetting if already handled by OK/Clear
+                if (taskToSetTimeFor == task) {
                     taskToSetTimeFor = null
                 }
             }
         }.show()
     }
 
-    // --- Trigger Time Picker when taskToSetTimeFor changes --- // <<< ADDED >>>
     LaunchedEffect(taskToSetTimeFor) {
         taskToSetTimeFor?.let { task ->
             showTimePicker(task)
         }
     }
-    // --- End Time Picker Logic ---
 
-    // --- Reminder Dialog Composable ---
-    // Only composed when showReminderDialog is true
     if (showReminderDialog) {
         ReminderPickerDialog(
             initialSelection = reminderDialogValue,
             onDismiss = {
                 showReminderDialog = false
-                taskToSetReminderFor = null // Reset selected task
+                taskToSetReminderFor = null
             },
             onSave = { minutes ->
                 taskToSetReminderFor?.let { task ->
                     viewModel.setTaskReminder(task.id, minutes)
-                    Log.d("TaskListScreen", "Saved reminder ($minutes min) for task ID: ${task.id}")
                 }
                 showReminderDialog = false
-                taskToSetReminderFor = null // Reset selected task
-                // TODO: Potentially request notification permission here if setting a reminder and permission not granted
+                taskToSetReminderFor = null
             }
         )
     }
-    // --- End Reminder Dialog Composable ---
 
-    // --- Main UI Structure ---
-    Box( // Root Box for background
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(if (backgroundPainter == null) backgroundColor else Color.Transparent)
     ) {
-        // Background Image Layer
         if (backgroundPainter != null) {
             Image(
                 painter = backgroundPainter,
@@ -235,43 +205,39 @@ fun TaskListScreen(
             )
         }
 
-        // Scaffold Layer (Top Bar, Content)
         Scaffold(
             topBar = {
                 TaskListTopAppBar(
                     selectedDate = selectedDate,
-                    dateFormatter = dateFormatter, // Pass formatter
+                    dateFormatter = dateFormatter,
                     onNavigateToCalendar = onNavigateToCalendar,
                     onNavigateToSettings = onNavigateToSettings
                 )
             },
-            containerColor = Color.Transparent // Make Scaffold background transparent
+            containerColor = Color.Transparent
         ) { paddingValues ->
 
-            // Content Box (Task List + Input Bar)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues) // Apply Scaffold padding
+                    .padding(paddingValues)
             ) {
-                // Task List
                 TaskListContent(
                     tasks = tasksForDate,
-                    viewModel = viewModel, // Pass for actions
-                    onSetReminderClick = { task -> // Lambda to handle reminder icon click
-                        // This is now only called IF time is set (logic moved to TaskItemCard)
+                    viewModel = viewModel,
+                    onSetReminderClick = { task ->
                         taskToSetReminderFor = task
                         reminderDialogValue = task.reminderMinutesBefore
                         showReminderDialog = true
-                        Log.d("TaskListScreen", "Opening reminder dialog for task ID: ${task.id}")
                     },
-                    onCardClick = { task -> // Lambda to handle card click
-                        taskToSetTimeFor = task // Set state to trigger LaunchedEffect
-                        Log.d("TaskListScreen", "Card clicked for task ID: ${task.id}, preparing time picker.")
+                    onCardClick = { task ->
+                        taskToSetTimeFor = task
+                    },
+                    onCardLongPress = { task ->
+                        onNavigateToTaskDetails(task.id) // This calls the lambda passed in
                     }
                 )
 
-                // Floating Input Bar (Aligned to Bottom)
                 FloatingTaskInputBar(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -281,10 +247,8 @@ fun TaskListScreen(
                     onTextChange = { newTaskText = it },
                     onEditClick = {
                         Log.d("TaskListScreen", "Edit button clicked (placeholder)")
-                        // TODO: Implement edit action
                     },
                     onMicClick = {
-                        // Request audio permission before launching speech recognizer
                         recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                     },
                     onAddTask = {
@@ -296,17 +260,16 @@ fun TaskListScreen(
                                 reminderMinutes = null,
                                 taskTime = null
                             )
-                            newTaskText = "" // Clear input
-                            keyboardController?.hide() // Hide keyboard
+                            newTaskText = ""
+                            keyboardController?.hide()
                         }
                     }
                 )
-            } // End Content Box
-        } // End Scaffold
-    } // End Root Box
+            }
+        }
+    }
 }
 
-// --- Extracted TopAppBar ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TaskListTopAppBar(
@@ -341,20 +304,20 @@ private fun TaskListTopAppBar(
     )
 }
 
-// --- Extracted Task List Content ---
 @Composable
 private fun TaskListContent(
     tasks: List<TaskItem>,
     viewModel: TaskViewModel,
-    onSetReminderClick: (TaskItem) -> Unit, // Callback for reminder icon (if time is set)
-    onCardClick: (TaskItem) -> Unit, // Callback for card itself
+    onSetReminderClick: (TaskItem) -> Unit,
+    onCardClick: (TaskItem) -> Unit,
+    onCardLongPress: (TaskItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
-        contentPadding = PaddingValues(top = 8.dp, bottom = InputBarHeightEstimate + 16.dp) // Padding for floating input bar
+        contentPadding = PaddingValues(top = 8.dp, bottom = InputBarHeightEstimate + 16.dp)
     ) {
         if (tasks.isEmpty()) {
             item {
@@ -369,9 +332,9 @@ private fun TaskListContent(
                     taskTime = task.taskTime,
                     isImportant = task.isImportant,
                     onToggleImportant = { viewModel.toggleTaskImportance(task.id) },
-                    // Pass the callback, logic to call it is now inside TaskItemCard
                     onSetReminderClick = { onSetReminderClick(task) },
-                    onCardClick = { onCardClick(task) }
+                    onCardClick = { onCardClick(task) },
+                    onCardLongPress = { onCardLongPress(task) }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
@@ -379,7 +342,6 @@ private fun TaskListContent(
     }
 }
 
-// --- Extracted Empty State Indicator ---
 @Composable
 private fun EmptyTaskListIndicator(modifier: Modifier = Modifier) {
     Box(
@@ -395,8 +357,6 @@ private fun EmptyTaskListIndicator(modifier: Modifier = Modifier) {
     }
 }
 
-
-// --- Floating Input Bar Composable (Simplified) ---
 @Composable
 private fun FloatingTaskInputBar(
     modifier: Modifier = Modifier,
@@ -417,12 +377,10 @@ private fun FloatingTaskInputBar(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Edit Button
             IconButton(onClick = onEditClick) {
                 Icon(Icons.Filled.Edit, stringResource(R.string.edit), tint = LocalContentColor.current.copy(alpha = 0.7f))
             }
 
-            // Task Input Field
             OutlinedTextField(
                 value = newTaskText,
                 onValueChange = onTextChange,
@@ -430,7 +388,7 @@ private fun FloatingTaskInputBar(
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(percent = 50),
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors( // Transparent background
+                colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
                     disabledContainerColor = Color.Transparent,
@@ -443,10 +401,9 @@ private fun FloatingTaskInputBar(
                     unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 ),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { onAddTask() }) // Trigger add on keyboard 'Done'
+                keyboardActions = KeyboardActions(onDone = { onAddTask() })
             )
 
-            // Mic Button
             IconButton(onClick = onMicClick) {
                 Icon(
                     Icons.Default.Mic,
@@ -455,7 +412,6 @@ private fun FloatingTaskInputBar(
                 )
             }
 
-            // Add Button
             IconButton(onClick = onAddTask, enabled = newTaskText.isNotBlank()) {
                 Icon(
                     Icons.Default.AddCircle,
@@ -467,7 +423,6 @@ private fun FloatingTaskInputBar(
     }
 }
 
-// --- Reminder Picker Dialog Composable (Uses constant options) ---
 @Composable
 fun ReminderPickerDialog(
     initialSelection: Int?,
@@ -484,9 +439,8 @@ fun ReminderPickerDialog(
             Column(
                 modifier = Modifier
                     .padding(16.dp)
-                    .verticalScroll(rememberScrollState()) // Allow scrolling
+                    .verticalScroll(rememberScrollState())
             ) {
-                // Title
                 Text(
                     text = stringResource(R.string.set_reminder),
                     style = MaterialTheme.typography.titleLarge,
@@ -495,7 +449,6 @@ fun ReminderPickerDialog(
                         .align(Alignment.CenterHorizontally)
                 )
 
-                // Options (using the constant list)
                 reminderDialogOptions.forEach { (minutes, label) ->
                     Row(
                         Modifier
@@ -509,15 +462,12 @@ fun ReminderPickerDialog(
                             onClick = { selectedOption = minutes }
                         )
                         Spacer(Modifier.width(8.dp))
-                        // TODO: Replace hardcoded labels with string resources for localization
-                        // Text(stringResource(getReminderLabelResId(minutes)))
                         Text(label)
                     }
                 }
 
                 Spacer(Modifier.height(24.dp))
 
-                // Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
@@ -531,7 +481,7 @@ fun ReminderPickerDialog(
     }
 }
 
-// --- Task Item Card Composable (MODIFIED) ---
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TaskItemCard(
     task: TaskItem,
@@ -540,16 +490,20 @@ fun TaskItemCard(
     taskTime: LocalTime?,
     isImportant: Boolean,
     onToggleImportant: () -> Unit,
-    onSetReminderClick: () -> Unit, // This callback is now conditional
-    onCardClick: () -> Unit
+    onSetReminderClick: () -> Unit,
+    onCardClick: () -> Unit,
+    onCardLongPress: () -> Unit
 ) {
     val isNotificationActive = reminderMinutes != null || taskTime != null
-    val context = LocalContext.current // <<< Get context for Toast
+    val context = LocalContext.current
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onCardClick() },
+            .combinedClickable(
+                onClick = { onCardClick() },
+                onLongClick = { onCardLongPress() } // This triggers the callback
+            ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f)
@@ -561,19 +515,13 @@ fun TaskItemCard(
                 .padding(horizontal = 8.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Reminder/Time Button
             IconButton(
                 onClick = {
-                    // <<< MODIFIED LOGIC >>>
                     if (taskTime == null) {
-                        // Time not set, show Toast message
-                        val message = context.getString(R.string.set_time_first_message) // <<< Use new string resource
+                        val message = context.getString(R.string.set_time_first_message)
                         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                        Log.d("TaskItemCard", "Reminder click blocked for task ID ${task.id}: Time not set.")
                     } else {
-                        // Time is set, call the original callback to open reminder dialog
                         onSetReminderClick()
-                        Log.d("TaskItemCard", "Reminder click allowed for task ID ${task.id}: Opening dialog.")
                     }
                 },
                 modifier = Modifier.size(40.dp)
@@ -582,11 +530,9 @@ fun TaskItemCard(
                     imageVector = if (isNotificationActive) Icons.Filled.Notifications else Icons.Outlined.NotificationsNone,
                     contentDescription = stringResource(R.string.set_reminder_or_time),
                     tint = if (isNotificationActive) MaterialTheme.colorScheme.primary else LocalContentColor.current.copy(alpha = 0.7f)
-                    // Icon appearance remains based on isNotificationActive
                 )
             }
 
-            // Importance Indicator (if important)
             if (isImportant) {
                 Icon(
                     imageVector = Icons.Filled.Star,
@@ -598,7 +544,6 @@ fun TaskItemCard(
                 Spacer(modifier = Modifier.width(16.dp + 8.dp))
             }
 
-            // Task Title and Time in a Column
             Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                 Text(
                     text = task.title,
@@ -616,7 +561,6 @@ fun TaskItemCard(
                 }
             }
 
-            // Toggle Importance Button
             IconButton(onClick = onToggleImportant, modifier = Modifier.size(40.dp)) {
                 Icon(
                     imageVector = if (isImportant) Icons.Filled.Star else Icons.Outlined.StarBorder,
@@ -625,7 +569,6 @@ fun TaskItemCard(
                 )
             }
 
-            // Delete Button
             IconButton(onClick = { onDelete(task.id) }, modifier = Modifier.size(40.dp)) {
                 Icon(
                     imageVector = Icons.Outlined.DeleteOutline,
@@ -636,7 +579,3 @@ fun TaskItemCard(
         }
     }
 }
-
-// --- Remember to Add String Resources ---
-// Add these to your res/values/strings.xml and res/values-et/strings.xml:
-// <string name="set_time_first_message">Set time first</string>

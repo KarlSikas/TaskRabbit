@@ -2,6 +2,7 @@
     <string name="app_name">ÜlesandeJänes</string>
     <string name="app_description">Organiseeri oma ülesandeid stiilselt</string>
     <string name="select_calendar_background">Vali Kalendri Taust</string>
+
     <!-- Settings Screen -->
     <string name="settings">Seaded</string>
     <string name="background_images">Taustapildid</string>
@@ -18,7 +19,11 @@
     <string name="english">Inglise</string>
     <string name="estonian">Eesti</string>
     <string name="dark_mode">Tume režiim</string>
+    <string name="dark_mode_requires_default_background">Tume režiim nõuab vaikimisi (Valget) tausta.</string>
     <string name="selected">Valitud</string>
+    <string name="light">Hele</string>
+    <string name="dark">Tume</string>
+    <string name="system_default">Süsteem</string>
 
     <!-- Background Selector Screen -->
     <string name="select_background">Vali Taust</string>
@@ -31,6 +36,7 @@
 
     <!-- Navigation -->
     <string name="back">Tagasi</string>
+    <string name="navigate_back">Navigeeri Tagasi</string>
     <string name="next">Edasi</string>
     <string name="cancel">Tühista</string>
     <string name="save">Salvesta</string>
@@ -58,6 +64,8 @@
     <string name="no_tasks_for_date">Sellel kuupäeval ülesandeid pole</string>
     <string name="task_title_hint">Ülesande pealkiri...</string>
     <string name="set_reminder_or_time">Määra meeldetuletus või aeg</string>
+    <string name="update_task">Uuenda Ülesannet</string> <!-- <<< ADDED >>> -->
+    <string name="title_cannot_be_empty">Ülesande pealkiri ei saa olla tühi.</string> <!-- <<< ADDED >>> -->
 
 
     <!-- Task Details -->
@@ -71,7 +79,6 @@
     <string name="completed">Tehtud</string>
     <string name="set_reminder">Määra meeldetuletus</string>
     <string name="set_time_first_message">Määra esmalt aeg</string>
-
 
     <!-- Calendar Screen -->
     <string name="calendar">Kalender</string>
@@ -88,10 +95,12 @@
     <string name="notification_channel_name">Ülesande Meeldetuletused</string>
     <string name="notification_channel_description">Meeldetuletused sinu tulevatele ülesannetele</string>
     <string name="task_reminder">Ülesande Meeldetuletus</string>
-    <string name="default_task_title">Ülesande Meeldetuletus</string> <!-- <<< ADDED THIS LINE >>> -->
+    <string name="default_task_title">Ülesande Meeldetuletus</string>
+    <string name="task_due_description">Sinu ülesanne "%1$s" on tähtaegunud.</string>
     <string name="task_due_soon">Ülesande tähtaeg läheneb</string>
     <string name="reminder_set">Meeldetuletus seatud</string>
     <string name="reminder_removed">Meeldetuletus eemaldatud</string>
+    <string name="snooze">Lükka edasi</string>
 
     <!-- Permissions -->
     <string name="mic_permission_rationale">Mikrofoni luba on vajalik häälega ülesannete lisamiseks</string>
@@ -99,6 +108,7 @@
     <string name="permission_denied">Luba puudub</string>
     <string name="permission_required">Luba on vajalik</string>
     <string name="go_to_settings">Mine Seadetesse</string>
+    <string name="exact_alarm_permission_required_snooze">"Alarmid ja meeldetuletused" luba on vajalik meeldetuletuste edasilükkamiseks. Palun luba see rakenduse seadetes.</string>
 
     <!-- Error Messages -->
     <string name="error_generic">Midagi läks valesti. Palun proovi uuesti.</string>
@@ -107,6 +117,7 @@
     <string name="error_cannot_save">Ülesannet ei saa salvestada</string>
     <string name="error_cannot_delete">Ülesannet ei saa kustutada</string>
     <string name="error_voice_recognition">Hääletuvastus ebaõnnestus</string>
+    <string name="error_setting_snooze">Edasilükatud alarmi seadmine ebaõnnestus.</string>
 
     <!-- Empty States -->
     <string name="empty_state_tasks">Ülesanded puuduvad.\nLisa ülesanne vajutades + nuppu!</string>
@@ -117,6 +128,8 @@
     <string name="confirm_delete_task">Kas oled kindel, et soovid selle ülesande kustutada?</string>
     <string name="confirm_mark_completed">Märkida see ülesanne tehtuks?</string>
     <string name="confirm_clear_all">Kas oled kindel, et soovid kõik ülesanded kustutada?</string>
+    <string name="confirm_update_task_simple">Kas soovid seda ülesannet uuendada?</string> <!-- <<< ADDED >>> -->
+
 
     <!-- Accessibility -->
     <string name="accessibility_add_task">Ülesande lisamise nupp</string>
@@ -128,21 +141,7 @@
     <string name="accessibility_priority_star">Prioriteedi täht</string>
     <string name="accessibility_completed_checkbox">Tehtud märkeruut</string>
 
-    <!-- Reminder Dialog Options (Optional - uncomment and adjust as needed, using resources is better for translation) -->
-    <!--
-    <string name="reminder_option_none">Puudub</string>
-    <string name="reminder_option_5_min">5 minutit enne</string>
-    <string name="reminder_option_15_min">15 minutit enne</string>
-    <string name="reminder_option_30_min">30 minutit enne</string>
-    <string name="reminder_option_1_hour">1 tund enne</string>
-    <string name="reminder_option_2_hours">2 tundi enne</string>
-    <string name="reminder_option_4_hours">4 tundi enne</string>
-    <string name="reminder_option_12_hours">12 tundi enne</string>
-    <string name="reminder_option_1_day">1 päev enne</string>
-    <string name="reminder_option_2_days">2 päeva enne</string>
-    <string name="reminder_option_3_days">3 päeva enne</string>
-    <string name="reminder_option_5_days">5 päeva enne</string>
-    <string name="reminder_option_1_week">1 nädal enne</string>
-    -->
+    <!-- App Info -->
+    <string name="app_version">Versioon %1$s</string>
 
 </resources>
