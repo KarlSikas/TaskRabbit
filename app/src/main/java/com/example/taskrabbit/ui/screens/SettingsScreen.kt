@@ -105,7 +105,7 @@ fun SettingsScreen(
     val backgroundPainter: Painter? = AppThemeSettings.getBackgroundImagePainter(currentThemeSettings, context)
     val backgroundColor = AppThemeSettings.getBackgroundColor(currentThemeSettings, context)
 
-    // --- Condition for enabling Dark Mode ---
+    // Condition for enabling Dark Mode
     val isDarkModeAllowed = currentThemeSettings.backgroundChoice == BackgroundChoice.WHITE
 
     Surface(
@@ -136,7 +136,7 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back)) // Use AutoMirrored icon
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
@@ -153,6 +153,7 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(vertical = 16.dp)
                 )
+                // --- Background Options Row 1 ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -162,19 +163,29 @@ fun SettingsScreen(
                     DefaultBackgroundOption(
                         name = stringResource(id = R.string.default_option),
                         isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.WHITE,
-                        onClick = { settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.WHITE)) }
+                        onClick = {
+                            // Selecting default does NOT force dark mode off
+                            settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.WHITE))
+                        }
                     )
                     BackgroundImageOption(
                         imageResId = R.drawable.bg_butterfly, name = stringResource(id = R.string.butterfly), choice = BackgroundChoice.BUTTERFLY,
                         isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.BUTTERFLY,
-                        onClick = { settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.BUTTERFLY)) }
+                        onClick = {
+                            // *** FIXED: Set darkModeEnabled to false when selecting this background ***
+                            settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.BUTTERFLY, darkModeEnabled = false))
+                        }
                     )
                     BackgroundImageOption(
                         imageResId = R.drawable.bg_colorful, name = stringResource(id = R.string.colorful), choice = BackgroundChoice.COLORFUL,
                         isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.COLORFUL,
-                        onClick = { settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.COLORFUL)) }
+                        onClick = {
+                            // *** FIXED: Set darkModeEnabled to false when selecting this background ***
+                            settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.COLORFUL, darkModeEnabled = false))
+                        }
                     )
                 }
+                // --- Background Options Row 2 ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -184,19 +195,29 @@ fun SettingsScreen(
                     BackgroundImageOption(
                         imageResId = R.drawable.bg_cute, name = stringResource(id = R.string.cute), choice = BackgroundChoice.CUTE,
                         isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.CUTE,
-                        onClick = { settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.CUTE)) }
+                        onClick = {
+                            // *** FIXED: Set darkModeEnabled to false when selecting this background ***
+                            settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.CUTE, darkModeEnabled = false))
+                        }
                     )
                     BackgroundImageOption(
                         imageResId = R.drawable.bg_flowers, name = stringResource(id = R.string.flowers), choice = BackgroundChoice.FLOWERS,
                         isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.FLOWERS,
-                        onClick = { settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.FLOWERS)) }
+                        onClick = {
+                            // *** FIXED: Set darkModeEnabled to false when selecting this background ***
+                            settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.FLOWERS, darkModeEnabled = false))
+                        }
                     )
                     BackgroundImageOption(
                         imageResId = R.drawable.bg_rainbow, name = stringResource(id = R.string.rainbow), choice = BackgroundChoice.RAINBOW,
                         isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.RAINBOW,
-                        onClick = { settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.RAINBOW)) }
+                        onClick = {
+                            // *** FIXED: Set darkModeEnabled to false when selecting this background ***
+                            settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.RAINBOW, darkModeEnabled = false))
+                        }
                     )
                 }
+                // --- Background Options Row 3 ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -206,24 +227,30 @@ fun SettingsScreen(
                     BackgroundImageOption(
                         imageResId = R.drawable.bg_shooting_star, name = stringResource(id = R.string.stars), choice = BackgroundChoice.SHOOTING_STAR,
                         isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.SHOOTING_STAR,
-                        onClick = { settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.SHOOTING_STAR)) }
+                        onClick = {
+                            // *** FIXED: Set darkModeEnabled to false when selecting this background ***
+                            settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.SHOOTING_STAR, darkModeEnabled = false))
+                        }
                     )
                     BackgroundImageOption(
                         imageResId = R.drawable.bg_skeleton_head, name = stringResource(id = R.string.skull), choice = BackgroundChoice.SKELETON_HEAD,
                         isSelected = currentThemeSettings.backgroundChoice == BackgroundChoice.SKELETON_HEAD,
-                        onClick = { settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.SKELETON_HEAD)) }
+                        onClick = {
+                            // *** FIXED: Set darkModeEnabled to false when selecting this background ***
+                            settingsViewModel.updateThemeSettings(currentThemeSettings.copy(backgroundChoice = BackgroundChoice.SKELETON_HEAD, darkModeEnabled = false))
+                        }
                     )
-                    Spacer(modifier = Modifier.width(70.dp))
+                    Spacer(modifier = Modifier.width(70.dp)) // Keep spacer for layout
                 }
 
                 Divider(modifier = Modifier.padding(vertical = 8.dp))
 
-                // --- Modified Dark mode toggle ---
-                Column { // Wrap in column to place text below
+                // --- Dark mode toggle (logic inside remains the same) ---
+                Column {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp), // Reduced padding a bit
+                            .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
@@ -235,27 +262,26 @@ fun SettingsScreen(
                             checked = currentThemeSettings.darkModeEnabled,
                             enabled = isDarkModeAllowed, // Enable based on condition
                             onCheckedChange = { isChecked ->
-                                // Only update if allowed (safeguard)
+                                // Only update if allowed
                                 if (isDarkModeAllowed) {
                                     settingsViewModel.updateThemeSettings(currentThemeSettings.copy(darkModeEnabled = isChecked))
                                 }
                             }
                         )
                     }
-                    // --- Explanatory text for disabled Dark Mode ---
                     AnimatedVisibility(visible = !isDarkModeAllowed) {
                         Text(
-                            text = stringResource(R.string.dark_mode_requires_default_background), // Use string resource
+                            text = stringResource(R.string.dark_mode_requires_default_background),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 4.dp, top = 0.dp, bottom = 8.dp) // Adjust padding
+                            modifier = Modifier.padding(start = 4.dp, top = 0.dp, bottom = 8.dp)
                         )
                     }
                 }
                 // --- End Dark mode toggle ---
 
 
-                // --- Notifications toggle ---
+                // --- Notifications toggle (logic remains the same) ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -294,7 +320,7 @@ fun SettingsScreen(
                 }
                 // --- End Notifications toggle ---
 
-                // --- Language selection ---
+                // --- Language selection (logic remains the same) ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -347,7 +373,7 @@ fun SettingsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        stringResource(R.string.app_version, "1.0"), // Use string resource with placeholder
+                        stringResource(R.string.app_version, "1.0"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
@@ -357,6 +383,8 @@ fun SettingsScreen(
         }
     }
 }
+
+// --- Helper composables and functions (remain unchanged) ---
 
 private fun restartApp(context: Context) {
     Log.i("SettingsScreen", "Restarting MainActivity to apply locale change.")
@@ -505,6 +533,7 @@ fun BackgroundImageOption(
     }
 }
 
+// --- Preview (remains unchanged) ---
 @Preview(showBackground = true, name = "Settings Preview Light")
 @Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES, name = "Settings Preview Dark")
 @Composable

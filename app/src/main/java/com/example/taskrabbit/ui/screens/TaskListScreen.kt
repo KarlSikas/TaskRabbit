@@ -11,11 +11,10 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.ExperimentalFoundationApi // Needed for combinedClickable
+// Removed ExperimentalFoundationApi as combinedClickable is no longer used
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable // Import for long press
+import androidx.compose.foundation.clickable // Keep clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -49,11 +48,13 @@ import com.example.taskrabbit.R
 import com.example.taskrabbit.data.TaskItem
 import com.example.taskrabbit.ui.theme.AppThemeSettings
 import com.example.taskrabbit.viewmodel.TaskViewModel
+import kotlinx.coroutines.launch // Keep if needed for other async ops
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalTime
 import org.threeten.bp.format.DateTimeFormatter
 import java.util.*
 
+// --- Constants (No Changes) ---
 private val notificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
     Manifest.permission.POST_NOTIFICATIONS
 } else {
@@ -63,7 +64,6 @@ private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM
 private val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("h:mm a")
 private val InputBarHeightEstimate: Dp = 72.dp
 
-// Reminder options (Labels should ideally use string resources)
 private val reminderDialogOptions = listOf(
     null to "None",
     5 to "5 minutes before",
@@ -80,15 +80,18 @@ private val reminderDialogOptions = listOf(
     10080 to "1 week before"
 )
 
+// --- TaskListScreen Composable (REMOVED onNavigateToTaskDetails parameter from signature) ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskListScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToCalendar: () -> Unit,
-    onNavigateToTaskDetails: (taskId: Long) -> Unit, // Defined here
+    // REMOVED: onNavigateToTaskDetails: (taskId: Long) -> Unit, <<-- THIS LINE IS GONE
     viewModel: TaskViewModel
 ) {
+    // --- State and Context ---
     val context = LocalContext.current
+    val scope = rememberCoroutineScope() // Keep scope
     val currentThemeSettings by AppThemeSettings.themeSettings.collectAsState()
     val backgroundPainter: Painter? = AppThemeSettings.getBackgroundImagePainter(currentThemeSettings, context)
     val backgroundColor = AppThemeSettings.getBackgroundColor(currentThemeSettings, context)
@@ -105,6 +108,7 @@ fun TaskListScreen(
 
     var taskToSetTimeFor by remember { mutableStateOf<TaskItem?>(null) }
 
+    // --- Activity Result Launchers (No Changes) ---
     val speechRecognitionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -140,6 +144,7 @@ fun TaskListScreen(
         }
     }
 
+    // --- Helper Functions (No Changes) ---
     fun showTimePicker(task: TaskItem) {
         val calendar = Calendar.getInstance()
         val initialHour = task.taskTime?.hour ?: calendar.get(Calendar.HOUR_OF_DAY)
@@ -168,12 +173,14 @@ fun TaskListScreen(
         }.show()
     }
 
+    // --- Effects (No Changes) ---
     LaunchedEffect(taskToSetTimeFor) {
         taskToSetTimeFor?.let { task ->
             showTimePicker(task)
         }
     }
 
+    // --- Dialogs (No Changes) ---
     if (showReminderDialog) {
         ReminderPickerDialog(
             initialSelection = reminderDialogValue,
@@ -191,6 +198,7 @@ fun TaskListScreen(
         )
     }
 
+    // --- UI Structure ---
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -232,10 +240,8 @@ fun TaskListScreen(
                     },
                     onCardClick = { task ->
                         taskToSetTimeFor = task
-                    },
-                    onCardLongPress = { task ->
-                        onNavigateToTaskDetails(task.id) // This calls the lambda passed in
                     }
+                    // REMOVED: onCardLongPress lambda from TaskListContent call
                 )
 
                 FloatingTaskInputBar(
@@ -246,6 +252,7 @@ fun TaskListScreen(
                     isListeningForSpeech = isListeningForSpeech,
                     onTextChange = { newTaskText = it },
                     onEditClick = {
+                        // Placeholder action
                         Log.d("TaskListScreen", "Edit button clicked (placeholder)")
                     },
                     onMicClick = {
@@ -253,8 +260,9 @@ fun TaskListScreen(
                     },
                     onAddTask = {
                         if (newTaskText.isNotBlank()) {
+                            val titleToAdd = newTaskText.trim()
                             viewModel.addTask(
-                                title = newTaskText,
+                                title = titleToAdd,
                                 date = selectedDate,
                                 isImportant = false,
                                 reminderMinutes = null,
@@ -270,6 +278,7 @@ fun TaskListScreen(
     }
 }
 
+// --- TopAppBar Composable (No Changes) ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TaskListTopAppBar(
@@ -304,15 +313,18 @@ private fun TaskListTopAppBar(
     )
 }
 
+// --- TaskListContent Composable (REMOVED onCardLongPress parameter) ---
 @Composable
 private fun TaskListContent(
     tasks: List<TaskItem>,
     viewModel: TaskViewModel,
     onSetReminderClick: (TaskItem) -> Unit,
     onCardClick: (TaskItem) -> Unit,
-    onCardLongPress: (TaskItem) -> Unit,
+    // REMOVED: onCardLongPress: (TaskItem) -> Unit, <<-- THIS LINE IS GONE
     modifier: Modifier = Modifier
 ) {
+    val scope = rememberCoroutineScope() // Keep scope
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -327,14 +339,18 @@ private fun TaskListContent(
             items(items = tasks, key = { task -> task.id }) { task ->
                 TaskItemCard(
                     task = task,
-                    onDelete = { viewModel.deleteTask(task.id) },
+                    onDelete = { taskId ->
+                        scope.launch { viewModel.deleteTask(taskId) }
+                    },
                     reminderMinutes = task.reminderMinutesBefore,
                     taskTime = task.taskTime,
                     isImportant = task.isImportant,
-                    onToggleImportant = { viewModel.toggleTaskImportance(task.id) },
+                    onToggleImportant = {
+                        scope.launch { viewModel.toggleTaskImportance(task.id) }
+                    },
                     onSetReminderClick = { onSetReminderClick(task) },
-                    onCardClick = { onCardClick(task) },
-                    onCardLongPress = { onCardLongPress(task) }
+                    onCardClick = { onCardClick(task) } // Pass task to onCardClick
+                    // REMOVED: onCardLongPress lambda from TaskItemCard call
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
@@ -342,6 +358,7 @@ private fun TaskListContent(
     }
 }
 
+// --- EmptyTaskListIndicator Composable (No Changes) ---
 @Composable
 private fun EmptyTaskListIndicator(modifier: Modifier = Modifier) {
     Box(
@@ -357,6 +374,7 @@ private fun EmptyTaskListIndicator(modifier: Modifier = Modifier) {
     }
 }
 
+// --- FloatingTaskInputBar Composable (No Changes) ---
 @Composable
 private fun FloatingTaskInputBar(
     modifier: Modifier = Modifier,
@@ -423,6 +441,7 @@ private fun FloatingTaskInputBar(
     }
 }
 
+// --- ReminderPickerDialog Composable (No Changes) ---
 @Composable
 fun ReminderPickerDialog(
     initialSelection: Int?,
@@ -481,7 +500,8 @@ fun ReminderPickerDialog(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+// --- TaskItemCard Composable (REMOVED onCardLongPress parameter and changed to clickable) ---
+// Removed @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TaskItemCard(
     task: TaskItem,
@@ -491,8 +511,8 @@ fun TaskItemCard(
     isImportant: Boolean,
     onToggleImportant: () -> Unit,
     onSetReminderClick: () -> Unit,
-    onCardClick: () -> Unit,
-    onCardLongPress: () -> Unit
+    onCardClick: (TaskItem) -> Unit // Expects TaskItem
+    // REMOVED: onCardLongPress: () -> Unit <<-- THIS LINE IS GONE
 ) {
     val isNotificationActive = reminderMinutes != null || taskTime != null
     val context = LocalContext.current
@@ -500,10 +520,8 @@ fun TaskItemCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .combinedClickable(
-                onClick = { onCardClick() },
-                onLongClick = { onCardLongPress() } // This triggers the callback
-            ),
+            .clickable { onCardClick(task) } // Use simple clickable, pass task
+        , // Removed combinedClickable
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f)

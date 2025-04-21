@@ -95,43 +95,33 @@ dependencies {
     // Core
     implementation("androidx.core:core-ktx:$coreKtxVersion")
 
-    // Coil
     implementation("io.coil-kt:coil-compose:$coilVersion")
 
-    // Room
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
     ksp("androidx.room:room-compiler:$roomVersion")
     androidTestImplementation("androidx.room:room-testing:$roomVersion")
 
-    // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion")
 
-    // Date/time library
     implementation("com.jakewharton.threetenabp:threetenabp:$threetenabpVersion")
 
-    // Compose Testing (versions managed by BOM)
     androidTestImplementation(platform("androidx.compose:compose-bom:$composeBomVersion"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4") // Version from BOM
     debugImplementation("androidx.compose.ui:ui-tooling") // Version from BOM
     debugImplementation("androidx.compose.ui:ui-test-manifest") // Version from BOM
 
-    // Unit tests
     testImplementation("junit:junit:$junitVersion")
     androidTestImplementation("androidx.test.ext:junit:$androidxJunitVersion")
     androidTestImplementation("androidx.test.espresso:espresso-core:$espressoCoreVersion")
 
-    // Material Icons
     implementation("androidx.compose.material:material-icons-extended:$materialIconsVersion")
 
-    // Navigation
     implementation("androidx.navigation:navigation-compose:$navigationVersion")
 
-    // DataStore
-    implementation("androidx.datastore:datastore-preferences:$datastoreVersion")
+    implementation("androidx.datastore:datastore-preferences:1.1.4")
 
-    // SplashScreen
     implementation("androidx.core:core-splashscreen:$splashscreenVersion")
 
     implementation("androidx.compose.runtime:runtime-livedata:1.6.7")
@@ -141,4 +131,8 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
     implementation("com.google.android.material:material:1.12.0")
+
+    implementation("androidx.sqlite:sqlite-ktx:2.4.0")
+
+    implementation("net.zetetic:android-database-sqlcipher:4.5.4")
 }

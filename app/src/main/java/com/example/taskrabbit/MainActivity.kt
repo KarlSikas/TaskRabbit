@@ -12,15 +12,14 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
+// REMOVED: NavType and navArgument as TaskDetails route is removed
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import com.example.taskrabbit.ui.screens.TaskListScreen
+import com.example.taskrabbit.ui.screens.TaskListScreen // Use the TaskListScreen WITHOUT onNavigateToTaskDetails param
 import com.example.taskrabbit.ui.screens.SettingsScreen
 import com.example.taskrabbit.ui.screens.CalendarScreen
-// import com.example.taskrabbit.ui.screens.TaskDetailsScreen // Import if you have this
+// REMOVED: TaskDetailsScreen import
 import com.example.taskrabbit.viewmodel.SettingsViewModel
 import com.example.taskrabbit.viewmodel.TaskViewModel
 import org.threeten.bp.LocalDate
@@ -28,7 +27,7 @@ import android.app.AlarmManager
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
-import android.provider.Settings as AndroidSettings // Use alias
+import android.provider.Settings as AndroidSettings
 import androidx.core.content.ContextCompat
 import android.widget.Toast
 import androidx.compose.material3.AlertDialog
@@ -44,41 +43,31 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.res.stringResource
 import com.example.taskrabbit.R
-import androidx.compose.foundation.isSystemInDarkTheme // Keep this import
-// --- Import your Theme and CORRECT Enum ---
+import androidx.compose.foundation.isSystemInDarkTheme
 import com.example.taskrabbit.ui.theme.TaskRabbitTheme
-// REMOVE DarkModePref import if not used elsewhere
-// import com.example.taskrabbit.ui.theme.DarkModePref
-import com.example.taskrabbit.ui.theme.BackgroundChoice // <<< IMPORT BackgroundChoice from ui.theme
-// --- Import AppState from viewmodel ---
-import com.example.taskrabbit.ui.theme.AppState // <<< IMPORT AppState
+import com.example.taskrabbit.ui.theme.BackgroundChoice
+import com.example.taskrabbit.ui.theme.AppState
 
 
-// Define your Screen sealed class (if not already defined elsewhere)
+// Define your Screen sealed class (REMOVED TaskDetails)
 sealed class Screen(val route: String) {
     object TaskList : Screen("taskList")
     object Settings : Screen("settings")
     object Calendar : Screen("calendar")
-    object TaskDetails : Screen("taskDetails/{taskId}") { // Route with argument
-        fun createRoute(taskId: Long) = "taskDetails/$taskId" // Helper to create route with ID
-    }
-    // Add other screens if needed
+    // REMOVED: object TaskDetails <<-- THIS LINE IS GONE
 }
 
 
 class MainActivity : AppCompatActivity() {
 
+    // --- ViewModels and Permission States/Launchers (No Changes) ---
     private val taskViewModel: TaskViewModel by viewModels {
         TaskViewModel.Factory(application as TaskRabbitApplication)
     }
     private val settingsViewModel: SettingsViewModel by viewModels {
         SettingsViewModel.Factory(application as TaskRabbitApplication)
     }
-
-    // State for Exact Alarm Dialog
     private val showExactAlarmDialog = mutableStateOf(false)
-
-    // State and Launcher for Notification Permission
     private val showNotificationPermissionRationale = mutableStateOf(false)
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
@@ -113,6 +102,7 @@ class MainActivity : AppCompatActivity() {
                 backgroundChoice = appState.backgroundChoice
             ) {
 
+                // --- Permission Dialogs (No Changes) ---
                 if (showAlarmDialogState) {
                     PermissionAlertDialog(
                         title = "Exact Alarm Permission Required",
@@ -128,7 +118,6 @@ class MainActivity : AppCompatActivity() {
                         }
                     )
                 }
-
                 if (showNotificationRationaleState) {
                     PermissionAlertDialog(
                         title = "Notification Permission Needed",
@@ -157,12 +146,7 @@ class MainActivity : AppCompatActivity() {
                                 Log.d("Nav", "Navigating to Calendar")
                                 navController.navigate(Screen.Calendar.route)
                             },
-                            // V V V --- THIS IS THE FIX --- V V V
-                            onNavigateToTaskDetails = { taskId ->
-                                Log.d("Nav", "Navigating to TaskDetails for ID: $taskId")
-                                navController.navigate(Screen.TaskDetails.createRoute(taskId))
-                            },
-                            // ^ ^ ^ --- THIS IS THE FIX --- ^ ^ ^
+                            // REMOVED: onNavigateToTaskDetails = { taskId -> ... }, <<-- THIS LINE IS GONE
                             viewModel = taskViewModel
                         )
                     }
@@ -178,51 +162,25 @@ class MainActivity : AppCompatActivity() {
                             onDateSelected = { selectedDate: LocalDate ->
                                 Log.d("Nav", "Date selected in Calendar: $selectedDate. Navigating back to TaskList.")
                                 taskViewModel.selectDate(selectedDate)
-                                navController.popBackStack() // Navigate back to TaskList
+                                navController.popBackStack()
                             },
                             onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
-                            // Pass viewModel if CalendarScreen needs it:
-                            // viewModel = taskViewModel
                         )
                     }
 
-                    // --- ADD A COMPOSABLE FOR THE DETAILS SCREEN ---
-                    composable(
-                        route = Screen.TaskDetails.route,
-                        arguments = listOf(navArgument("taskId") { type = NavType.LongType })
-                    ) { backStackEntry ->
-                        val taskId = backStackEntry.arguments?.getLong("taskId")
-                        if (taskId != null) {
-                            // Replace with your actual TaskDetailsScreen composable call
-                            /*
-                            TaskDetailsScreen(
-                                taskId = taskId,
-                                onNavigateBack = { navController.popBackStack() },
-                                viewModel = taskViewModel
-                            )
-                            */
-                            // Placeholder
-                            Text("Placeholder for Task Details Screen: ID $taskId")
-                        } else {
-                            LaunchedEffect(Unit) {
-                                Log.e("AppNavigation", "Task ID missing for TaskDetails route")
-                                navController.popBackStack()
-                            }
-                        }
-                    }
-                    // --- End TaskDetails composable ---
+                    // REMOVED: composable block for Screen.TaskDetails.route <<-- THIS BLOCK IS GONE
 
                 } // --- End NavHost ---
             } // --- End TaskRabbitTheme ---
         }
     }
 
+    // --- onResume, applyInitialLocale, Permission Checks/Requests, PermissionAlertDialog (No Changes) ---
     override fun onResume() {
         super.onResume()
         checkExactAlarmPermissionStatus()
     }
 
-    // --- Locale function ---
     private fun applyInitialLocale() {
         var currentLanguage: String
         try {
@@ -251,8 +209,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
-    // --- Check Exact Alarm Permission ---
     private fun checkExactAlarmPermissionStatus() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val alarmManager = ContextCompat.getSystemService(this, AlarmManager::class.java)
@@ -266,7 +222,6 @@ class MainActivity : AppCompatActivity() {
         } else { Log.d("PermissionCheck", "Not on Android 12+. No SCHEDULE_EXACT_ALARM check needed.") }
     }
 
-    // --- Open Exact Alarm Settings ---
     private fun openExactAlarmSettings() {
         val intent = Intent(AndroidSettings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
             data = Uri.parse("package:$packageName")
@@ -289,7 +244,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // --- Check and Request Notification Permission ---
     private fun checkAndRequestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             when {
@@ -308,7 +262,6 @@ class MainActivity : AppCompatActivity() {
         } else { Log.d("PermissionCheck", "Not on Android 13+. No POST_NOTIFICATIONS check needed.") }
     }
 
-    // --- Composable function for Dialogs ---
     @Composable
     private fun PermissionAlertDialog(
         title: String,
