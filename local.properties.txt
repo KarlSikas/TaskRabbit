@@ -1,0 +1,1 @@
+sdk.dir=C\:\\Users\\Arvuti\\AppData\\Local\\Android\\sdk
