@@ -9,7 +9,7 @@ import androidx.datastore.preferences.core.*
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewModelScope // Keep for loadSettings
 import com.example.taskrabbit.LANGUAGE_KEY // Import key from Application file
 import com.example.taskrabbit.TaskRabbitApplication
 import com.example.taskrabbit.ui.theme.AppThemeSettings
@@ -17,7 +17,7 @@ import com.example.taskrabbit.ui.theme.AppState
 import com.example.taskrabbit.ui.theme.BackgroundChoice
 import com.example.taskrabbit.ui.theme.ThemeSettings
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.launch // Keep for loadSettings
 import java.lang.IllegalArgumentException
 // --- Add Context import ---
 import android.content.Context
@@ -65,6 +65,7 @@ open class SettingsViewModel(application: Application) : AndroidViewModel(applic
         loadSettings()
     }
 
+    // loadSettings remains unchanged (uses viewModelScope internally)
     private fun loadSettings() {
         viewModelScope.launch {
             Log.d("SettingsViewModel", "Coroutine launched for loadSettings")
@@ -83,33 +84,26 @@ open class SettingsViewModel(application: Application) : AndroidViewModel(applic
 
                 // Load Language Setting
                 Log.d("SettingsViewModel", "Loading language setting...")
-                // Default to "en" if not found in DataStore
                 val storedLanguage = dataStore.data.map { prefs -> prefs[LANGUAGE_KEY] ?: "en" }.first()
                 Log.d("SettingsViewModel", "Loaded Language from DataStore: '$storedLanguage'")
-
-                // Update internal ViewModel state ONLY
                 _currentLanguagePreference.value = storedLanguage
                 _appState.update { it.copy(language = storedLanguage) }
                 Log.d("SettingsViewModel", "Internal language state updated to: '$storedLanguage'")
 
-                // --- applyLocale() CALL REMOVED FROM HERE ---
-                // The initial locale is now applied in MainActivity.onCreate
-
-                Log.d("SettingsViewModel", "Initial settings load complete (initial locale applied by MainActivity).") // Updated log
+                Log.d("SettingsViewModel", "Initial settings load complete (initial locale applied by MainActivity).")
 
             } catch (e: Exception) {
                 Log.e("SettingsViewModel", "Failed to load settings from DataStore", e)
-                // Reset state on error
-                _currentLanguagePreference.value = "en" // Reset internal state
+                _currentLanguagePreference.value = "en"
                 _themeSettings.value = ThemeSettings()
                 AppThemeSettings.updateThemeSettings(ThemeSettings())
-                _appState.value = AppState() // Reset app state too
-                // No need to call applyLocale here either, MainActivity handles initial
+                _appState.value = AppState()
             }
         }
     }
 
 
+    // updateThemeSettings remains unchanged (uses viewModelScope internally)
     open fun updateThemeSettings(newThemeSettings: ThemeSettings) {
         viewModelScope.launch {
             Log.d("SettingsViewModel", "Updating theme settings to: $newThemeSettings")
@@ -129,69 +123,68 @@ open class SettingsViewModel(application: Application) : AndroidViewModel(applic
     }
 
 
-    open fun updateLanguage(languageCode: String) {
+    // --- MODIFIED: Make this a suspend function ---
+    open suspend fun updateLanguage(languageCode: String) {
         // Use lowercase comparison for safety
         if (languageCode.lowercase() == _currentLanguagePreference.value.lowercase()) {
             Log.d("SettingsViewModel", "Language '$languageCode' already set, skipping update.")
             return
         }
         Log.d("SettingsViewModel", "updateLanguage called with: '$languageCode'")
-        viewModelScope.launch {
-            Log.d("SettingsViewModel", "Attempting to save language '$languageCode' to DataStore...")
-            try {
-                // Save preference (use the code as passed, e.g., "en" or "et")
-                dataStore.edit { preferences ->
-                    preferences[LANGUAGE_KEY] = languageCode
-                }
-                Log.d("SettingsViewModel", "Successfully saved '$languageCode' to DataStore.")
 
-                // Update internal state
-                _currentLanguagePreference.value = languageCode
-                _appState.update { it.copy(language = languageCode)}
-                Log.d("SettingsViewModel", "Internal language state updated to '$languageCode'")
+        // --- REMOVED: viewModelScope.launch { ... } ---
+        // The caller (SettingsScreen) will provide the scope.
 
-                // Apply locale change using AppCompatDelegate - THIS CALL REMAINS for user-triggered changes
-                applyLocale(languageCode)
-                Log.d("SettingsViewModel", "Locale update applied via applyLocale for '$languageCode'. App restart might be needed for full UI update.")
-
-
-            } catch (e: Exception) {
-                Log.e("SettingsViewModel", "Failed to save/apply language '$languageCode'", e)
+        Log.d("SettingsViewModel", "Attempting to save language '$languageCode' to DataStore...")
+        try {
+            // Save preference (use the code as passed, e.g., "en" or "et")
+            // dataStore.edit is already a suspend function
+            dataStore.edit { preferences ->
+                preferences[LANGUAGE_KEY] = languageCode
             }
+            Log.d("SettingsViewModel", "Successfully saved '$languageCode' to DataStore.")
+
+            // Update internal state (safe to do after suspend completes)
+            _currentLanguagePreference.value = languageCode
+            _appState.update { it.copy(language = languageCode)}
+            Log.d("SettingsViewModel", "Internal language state updated to '$languageCode'")
+
+            // Apply locale change using AppCompatDelegate - THIS CALL REMAINS
+            // It's generally safe and quick enough to keep here.
+            applyLocale(languageCode)
+            Log.d("SettingsViewModel", "Locale update applied via applyLocale for '$languageCode'. App restart will handle full UI update.")
+
+        } catch (e: Exception) {
+            Log.e("SettingsViewModel", "Failed to save/apply language '$languageCode'", e)
         }
+        // --- END REMOVED viewModelScope.launch ---
     }
 
-    // Private helper function to apply locale (used by updateLanguage)
+    // applyLocale remains unchanged (it's called by the now-suspend updateLanguage)
     private fun applyLocale(languageCode: String) {
         try {
             Log.d("SettingsViewModel", ">>> applyLocale attempting to set language code: '$languageCode'")
-
-            val tagToApply = when (languageCode.lowercase()) {
-                "et" -> "et-EE" // Use Estonian (Estonia) tag
-                "en" -> "en-US" // Use English (US) tag
-                else -> "en-US" // Default fallback to English (US)
-            }
+            // --- Using specific tags can sometimes help, but standard codes often work ---
+            // val tagToApply = when (languageCode.lowercase()) {
+            //    "et" -> "et-EE" // Use Estonian (Estonia) tag
+            //    "en" -> "en-US" // Use English (US) tag
+            //    else -> "en-US" // Default fallback to English (US)
+            //}
+            // --- Sticking to simple tags for now ---
+            val tagToApply = languageCode.lowercase()
 
             Log.d("SettingsViewModel", "Applying locale tag: '$tagToApply'")
             val appLocale: LocaleListCompat = LocaleListCompat.forLanguageTags(tagToApply)
-
             Log.d("SettingsViewModel", "Setting LocaleListCompat: ${appLocale.toLanguageTags()}")
-
-            // --- MORE DETAILED VERIFICATION ---
             val appContext: Context = getApplication<TaskRabbitApplication>().applicationContext
-
-            // Log BEFORE the call
             val localesBefore = appContext.resources.configuration.locales
             Log.d("SettingsViewModel", "VERIFY (BEFORE set): App Context locale list: ${localesBefore.toLanguageTags()}")
 
-            // THE ACTUAL CALL
             AppCompatDelegate.setApplicationLocales(appLocale)
             Log.d("SettingsViewModel", "Successfully called AppCompatDelegate.setApplicationLocales.")
 
-            // Log IMMEDIATELY AFTER the call
             val localesAfter = appContext.resources.configuration.locales
             Log.d("SettingsViewModel", "VERIFY (AFTER set): App Context locale list: ${localesAfter.toLanguageTags()}")
-            // --- END DETAILED VERIFICATION ---
 
         } catch (e: Exception) {
             Log.e("SettingsViewModel", "Error applying locale for language code '$languageCode'", e)
